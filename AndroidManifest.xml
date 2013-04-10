@@ -23,19 +23,20 @@
     package="org.lh.note" >
 
     <uses-sdk android:minSdkVersion="11" 
-        android:targetSdkVersion="14"/>
+        android:targetSdkVersion="17"/>
 
     <application android:icon="@drawable/app_notes"
         android:label="@string/app_name"
+        android:allowBackup="false"
     >
-        <provider android:name=".data.NoteProvider"
+        <provider android:name="org.lh.note.data.NoteProvider"
             android:authorities="com.google.provider.NotePad"
             android:exported="false">
             <grant-uri-permission android:pathPattern=".*" />
         </provider>
 
         <activity
-            android:name=".login.LoginActivity"
+            android:name=".auth.MainpageActivity"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustResize|stateVisible" >
             <intent-filter>
@@ -44,7 +45,21 @@
             </intent-filter>
         </activity>
         
-        <activity android:name=".NotesList" android:label="@string/title_notes_list">
+        <activity
+            android:name=".auth.SignupActivity"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize|stateVisible" >
+        </activity>
+        
+        <activity
+            android:name=".auth.LoginActivity"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize|stateVisible" >
+        </activity>
+        
+        <activity android:name=".NotesList" 
+            android:label="@string/title_notes_list"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.EDIT" />
@@ -60,6 +75,7 @@
         </activity>
 
         <activity android:name=".editor.NoteEditor"
+            android:exported="false"
             android:theme="@android:style/Theme.Holo.Light"
             android:screenOrientation="sensor"
             android:configChanges="keyboardHidden|orientation"
@@ -88,6 +104,7 @@
         </activity>
 
         <activity android:name=".editor.TitleEditor"
+            android:exported="false"
             android:label="@string/title_edit_title"
             android:icon="@drawable/ic_menu_edit"
             android:theme="@android:style/Theme.Holo.Dialog"
@@ -114,7 +131,9 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".NotesLiveFolder" android:label="@string/live_folder_name"
+        <activity android:name="org.lh.note.NotesLiveFolder" 
+            android:exported="false"
+            android:label="@string/live_folder_name"
             android:icon="@drawable/live_folder_notes">
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_LIVE_FOLDER" />

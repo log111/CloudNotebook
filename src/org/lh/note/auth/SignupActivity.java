@@ -1,4 +1,7 @@
-package org.lh.note.login;
+package org.lh.note.auth;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.lh.note.R;
 
@@ -11,7 +14,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.View;
@@ -23,14 +25,13 @@ import android.widget.TextView;
  * Activity which displays a login screen to the user, offering registration as
  * well.
  */
-public class LoginActivity extends Activity {
+public class SignupActivity extends Activity {
 	/**
 	 * A dummy authentication store containing known user names and passwords.
 	 * TODO: remove after connecting to a real authentication system.
 	 */
-	private static final String[] DUMMY_CREDENTIALS = new String[] {
-			"foo@example.com:hello", "bar@example.com:world" };
-
+	private static final Map<String, String> DUMMY_CREDENTIALS = new HashMap<String, String>();	
+	
 	/**
 	 * The default email to populate the email field with.
 	 */
@@ -39,13 +40,15 @@ public class LoginActivity extends Activity {
 	/**
 	 * Keep track of the login task to ensure we can cancel it if requested.
 	 */
-	private UserLoginTask mAuthTask = null;
+	private UserSignupTask mAuthTask = null;
 
 	// Values for email and password at the time of the login attempt.
+	private String mUsername;
 	private String mEmail;
 	private String mPassword;
 
 	// UI references.
+	private EditText mUserView;
 	private EditText mEmailView;
 	private EditText mPasswordView;
 	private View mLoginFormView;
@@ -56,9 +59,11 @@ public class LoginActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.activity_login);
+		setContentView(R.layout.activity_signup);
 
 		// Set up the login form.
+		mUserView = (EditText) findViewById(R.id.username);
+		
 		mEmail = getIntent().getStringExtra(EXTRA_EMAIL);
 		mEmailView = (EditText) findViewById(R.id.email);
 		mEmailView.setText(mEmail);
@@ -70,7 +75,7 @@ public class LoginActivity extends Activity {
 					public boolean onEditorAction(TextView textView, int id,
 							KeyEvent keyEvent) {
 						if (id == R.id.login || id == EditorInfo.IME_NULL) {
-							attemptLogin();
+							attemptSignup();
 							return true;
 						}
 						return false;
@@ -85,7 +90,7 @@ public class LoginActivity extends Activity {
 				new View.OnClickListener() {
 					@Override
 					public void onClick(View view) {
-						attemptLogin();
+						attemptSignup();
 					}
 				});
 	}
@@ -102,7 +107,7 @@ public class LoginActivity extends Activity {
 	 * If there are form errors (invalid email, missing fields, etc.), the
 	 * errors are presented and no actual login attempt is made.
 	 */
-	public void attemptLogin() {
+	public void attemptSignup() {
 		if (mAuthTask != null) {
 			return;
 		}
@@ -112,6 +117,7 @@ public class LoginActivity extends Activity {
 		mPasswordView.setError(null);
 
 		// Store values at the time of the login attempt.
+		mUsername = mUserView.getText().toString();
 		mEmail = mEmailView.getText().toString();
 		mPassword = mPasswordView.getText().toString();
 
@@ -149,8 +155,16 @@ public class LoginActivity extends Activity {
 			// perform the user login attempt.
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
 			showProgress(true);
-			mAuthTask = new UserLoginTask();
+			
+			mAuthTask = new UserSignupTask();
 			mAuthTask.execute((Void) null);
+			/**
+			 * TODO
+			 com.baidu.mcs.User user = new com.baidu.mcs.User();
+			 user.setUserName(mEmail);
+			 user.setPassword(mPassword);
+			 user.signupAsync(new UserSignupTask());
+			 */
 		}
 	}
 
@@ -196,10 +210,35 @@ public class LoginActivity extends Activity {
 	}
 
 	/**
+	 class UserSignupTask extends com.baidu.mcs.callbacks.UserCallback{
+	 	@Override
+	 	public void onSuccess(User user){
+	 		showProgress(false);
+			
+			user.setUserName(mEmail);
+			user.setPassword(mPassword);
+			user.loginAsync(new LoginActivity.UserLoginTask());
+			
+			Intent intent = new Intent();
+			intent.setClassName("org.lh.note", "org.lh.note.NotesList");
+			startActivity(intent);
+	 	}
+	 	
+	 	@Override
+	 	public void onFailure(java.lang.Throwable paramThrowable){
+	 		showProgress(false);
+	 		mPasswordView
+				.setError(getString(R.string.error_incorrect_password));
+			mPasswordView.requestFocus();
+	 	}
+	 }
+	 */
+	 
+	/**
 	 * Represents an asynchronous login/registration task used to authenticate
 	 * the user.
 	 */
-	public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
+	public class UserSignupTask extends AsyncTask<Void, Void, Boolean> {
 		@Override
 		protected Boolean doInBackground(Void... params) {
 			// TODO: attempt authentication against a network service.
@@ -210,17 +249,19 @@ public class LoginActivity extends Activity {
 			} catch (InterruptedException e) {
 				return false;
 			}
-
-			for (String credential : DUMMY_CREDENTIALS) {
-				String[] pieces = credential.split(":");
-				if (pieces[0].equals(mEmail)) {
-					// Account exists, return true if the password matches.
-					return pieces[1].equals(mPassword);
-				}
+			
+			//register the new account here.
+			CredentialStore store = CredentialStore.getInstance();
+			CredentialStore.User usr = new CredentialStore.User();
+			usr.username = mUsername;
+			usr.password = mPassword;
+			usr.email = mEmail;
+			
+			if(! store.setUser(usr)){
+				return false;
+			}else{
+				return null != store.getUser(mUsername, mPassword);
 			}
-			Log.d("LoginActivity", "UserLoginTask added");
-			// TODO: register the new account here.
-			return true;
 		}
 
 		@Override
@@ -229,7 +270,6 @@ public class LoginActivity extends Activity {
 			showProgress(false);
 
 			if (success) {
-				//finish();
 				Intent intent = new Intent();
 				intent.setClassName("org.lh.note", "org.lh.note.NotesList");
 				startActivity(intent);

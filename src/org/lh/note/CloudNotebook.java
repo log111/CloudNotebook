@@ -55,10 +55,6 @@ public final class CloudNotebook {
         private static final String SCHEME = "content://";
 
         /**
-         * Path parts for the URIs
-         */
-
-        /**
          * Path part for the Notes URI
          */
         private static final String PATH_NOTES = "/notes";
@@ -106,7 +102,6 @@ public final class CloudNotebook {
         /*
          * MIME type definitions
          */
-
         /**
          * The MIME type of {@link #CONTENT_URI} providing a directory of notes.
          */

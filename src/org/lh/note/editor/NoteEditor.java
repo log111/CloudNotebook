@@ -16,25 +16,27 @@
 
 package org.lh.note.editor;
 
-import java.io.ByteArrayInputStream;
-
 import org.lh.note.R;
 import org.lh.note.data.CloudNotebook;
 
 import android.app.Activity;
+import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -44,7 +46,6 @@ import android.view.MenuItem;
 import android.widget.EditText;
 
 import com.baidu.mcs.callback.FileDeleteCallback;
-import com.baidu.mcs.callback.FileUploadCallback;
 
 /**
  * This Activity handles "editing" a note, where editing is responding to
@@ -207,22 +208,6 @@ public class NoteEditor extends Activity {
             return;
         }
 
-        /*
-         * Using the URI passed in with the triggering Intent, gets the note or notes in
-         * the provider.
-         * Note: This is being done on the UI thread. It will block the thread until the query
-         * completes. In a sample app, going against a simple provider based on a local database,
-         * the block will be momentary, but in a real app you should use
-         * android.content.AsyncQueryHandler or android.os.AsyncTask.
-         */
-        mCursor = managedQuery(
-            mUri,         // The URI that gets multiple notes from the provider.
-            PROJECTION,   // A projection that returns the note ID and note content for each note.
-            null,         // No "where" clause selection criteria.
-            null,         // No "where" clause selection values.
-            null          // Use the default sort order (modification date, descending)
-        );
-
         // For a paste, initializes the data from clipboard.
         // (Must be done after mCursor is initialized.)
         if (Intent.ACTION_PASTE.equals(action)) {
@@ -245,78 +230,57 @@ public class NoteEditor extends Activity {
         if (savedInstanceState != null) {
             mOriginalContent = savedInstanceState.getString(ORIGINAL_CONTENT);
         }
+        
+        getLoaderManager().initLoader(0, null, noteLoader);
     }
 
+    private LoaderCallbacks<Cursor> noteLoader = new LoaderCallbacks<Cursor>(){
+
+		@Override
+		public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+			
+			return new CursorLoader(NoteEditor.this, mUri, PROJECTION, null, null, null);
+		}
+
+		@Override
+		public void onLoadFinished(Loader<Cursor> arg0, Cursor data) {
+			mCursor = data;
+			
+			if (data != null) {
+
+				data.moveToFirst();
+
+	            if (mState == STATE_EDIT) {
+	                // Set the title of the Activity to include the note title
+	                int colTitleIndex = data.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_TITLE);
+	                String title = data.getString(colTitleIndex);
+	                Resources res = getResources();
+	                String text = String.format(res.getString(R.string.title_edit), title);
+	                setTitle(text);
+	            } else if (mState == STATE_INSERT) {
+	                setTitle(getText(R.string.title_create));
+	            }
+
+	            int colNoteIndex = data.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_NOTE);
+	            String note = mCursor.getString(colNoteIndex);
+	            mText.setTextKeepState(note);
+
+	            if (mOriginalContent == null) {
+	                mOriginalContent = note;
+	            }
+	        } else {
+	            setTitle(getText(R.string.error_title));
+	            mText.setText(getText(R.string.error_message));
+	        }
+		}
+
+		@Override
+		public void onLoaderReset(Loader<Cursor> arg0) {
+			mCursor = null;
+		}
+    	
+    };
     
-    
-    /**
-     * This method is called when the Activity is about to come to the foreground. This happens
-     * when the Activity comes to the top of the task stack, OR when it is first starting.
-     *
-     * Moves to the first note in the list, sets an appropriate title for the action chosen by
-     * the user, puts the note contents into the TextView, and saves the original text as a
-     * backup.
-     */
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        /*
-         * mCursor is initialized, since onCreate() always precedes onResume for any running
-         * process. This tests that it's not null, since it should always contain data.
-         */
-        if (mCursor != null) {
-            // Requery in case something changed while paused (such as the title)
-            mCursor.requery();
-
-            /* Moves to the first record. Always call moveToFirst() before accessing data in
-             * a Cursor for the first time. The semantics of using a Cursor are that when it is
-             * created, its internal index is pointing to a "place" immediately before the first
-             * record.
-             */
-            mCursor.moveToFirst();
-
-            // Modifies the window title for the Activity according to the current Activity state.
-            if (mState == STATE_EDIT) {
-                // Set the title of the Activity to include the note title
-                int colTitleIndex = mCursor.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_TITLE);
-                String title = mCursor.getString(colTitleIndex);
-                Resources res = getResources();
-                String text = String.format(res.getString(R.string.title_edit), title);
-                setTitle(text);
-            // Sets the title to "create" for inserts
-            } else if (mState == STATE_INSERT) {
-                setTitle(getText(R.string.title_create));
-            }
-
-            /*
-             * onResume() may have been called after the Activity lost focus (was paused).
-             * The user was either editing or creating a note when the Activity paused.
-             * The Activity should re-display the text that had been retrieved previously, but
-             * it should not move the cursor. This helps the user to continue editing or entering.
-             */
-
-            // Gets the note text from the Cursor and puts it in the TextView, but doesn't change
-            // the text cursor's position.
-            int colNoteIndex = mCursor.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_NOTE);
-            String note = mCursor.getString(colNoteIndex);
-            mText.setTextKeepState(note);
-
-            // Stores the original note text, to allow the user to revert changes.
-            if (mOriginalContent == null) {
-                mOriginalContent = note;
-            }
-
-        /*
-         * Something is wrong. The Cursor should always contain data. Report an error in the
-         * note.
-         */
-        } else {
-            setTitle(getText(R.string.error_title));
-            mText.setText(getText(R.string.error_message));
-        }
-    }
-
     /**
      * This method is called when an Activity loses focus during its normal operation, and is then
      * later on killed. The Activity has a chance to save its state so that the system can restore
@@ -331,7 +295,21 @@ public class NoteEditor extends Activity {
         // needs to be killed while paused.
         outState.putString(ORIGINAL_CONTENT, mOriginalContent);
     }
+    
+    private static class SaveNoteTask extends AsyncTask<Void, Void, Void>{
 
+		@Override
+		protected Void doInBackground(Void... arg0) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+    	
+		@Override
+		protected void onPostExecute(Void result) {
+			// TODO Auto-generated method stub
+			super.onPostExecute(result);
+		}
+    }
     /**
      * This method is called when the Activity loses focus.
      *
@@ -346,6 +324,7 @@ public class NoteEditor extends Activity {
      */
     @Override
     protected void onPause() {
+    	Log.d(TAG, "onPause");
         super.onPause();
 
         /*
@@ -354,6 +333,8 @@ public class NoteEditor extends Activity {
          * exception or error.
          *
          */
+        new SaveNoteTask().execute((Void)null);
+        
         if (mCursor != null) {
 
             // Get the current note text.
@@ -588,7 +569,7 @@ public class NoteEditor extends Activity {
                 null,    // No selection criteria are used, so no where columns are necessary.
                 null     // No where columns are used, so no where arguments are necessary.
             );
-        
+        /*
         com.baidu.mcs.File.uploadAsync(cloudBucket, 
         		title, 
         		new ByteArrayInputStream(text.getBytes()), 
@@ -599,6 +580,7 @@ public class NoteEditor extends Activity {
         	public void onFailure(Throwable paramThrowable){
         	}
         });
+        */
     }
 
     /**

@@ -20,12 +20,15 @@ import org.lh.note.data.CloudNotebook;
 import org.lh.note.data.NoteProvider;
 
 import android.app.ListActivity;
+import android.app.LoaderManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -71,6 +74,9 @@ public class NotesList extends ListActivity {
 
     /** The index of the title column */
     private static final int COLUMN_INDEX_TITLE = 1;
+    
+    private Uri contentUri = null;
+    private SimpleCursorAdapter mAdapter = null;
 
     /**
      * onCreate is called when Android starts this Activity from scratch.
@@ -92,7 +98,8 @@ public class NotesList extends ListActivity {
         // If there is no data associated with the Intent, sets the data to the default URI, which
         // accesses a list of notes.
         if (intent.getData() == null) {
-            intent.setData(CloudNotebook.Notes.CONTENT_URI);
+        	contentUri = CloudNotebook.Notes.CONTENT_URI;
+            intent.setData(contentUri);
         }
         me = Mcs.getCurrentUser();
         Log.d(TAG, (me == null) ? "me is null" : "me not null" );
@@ -104,27 +111,6 @@ public class NotesList extends ListActivity {
          */
         getListView().setOnCreateContextMenuListener(this);
 
-        /* Performs a managed query. The Activity handles closing and requerying the cursor
-         * when needed.
-         *
-         * Please see the introductory note about performing provider operations on the UI thread.
-         */
-        Cursor cursor = managedQuery(
-            getIntent().getData(),            // Use the default content URI for the provider.
-            PROJECTION,                       // Return the note ID and title for each note.
-            null,                             // No where clause, return all records.
-            null,                             // No where clause, therefore no where column values.
-            CloudNotebook.Notes.DEFAULT_SORT_ORDER  // Use the default sort order.
-        );
-
-        /*
-         * The following two arrays create a "map" between columns in the cursor and view IDs
-         * for items in the ListView. Each element in the dataColumns array represents
-         * a column name; each element in the viewID array represents the ID of a View.
-         * The SimpleCursorAdapter maps them in ascending order to determine where each column
-         * value will appear in the ListView.
-         */
-
         // The names of the cursor columns to display in the view, initialized to the title column
         String[] dataColumns = { CloudNotebook.Notes.COLUMN_NAME_TITLE } ;
 
@@ -133,17 +119,40 @@ public class NotesList extends ListActivity {
         int[] viewIDs = { android.R.id.text1 };
 
         // Creates the backing adapter for the ListView.
-        SimpleCursorAdapter adapter
-            = new SimpleCursorAdapter(
-                      this,                             // The Context for the ListView
-                      R.layout.noteslist_item,          // Points to the XML for a list item
-                      cursor,                           // The cursor to get items from
-                      dataColumns,
-                      viewIDs
-              );
+        mAdapter = new SimpleCursorAdapter(
+	              this,                             // The Context for the ListView
+	              R.layout.noteslist_item,          // Points to the XML for a list item
+	              null,                           // The cursor to get items from
+	              dataColumns,
+	              viewIDs,
+	              0
+	    );
 
         // Sets the ListView's adapter to be the cursor adapter that was just created.
-        setListAdapter(adapter);
+        setListAdapter(mAdapter);
+        
+        getLoaderManager().initLoader(0, null, new LoaderManager.LoaderCallbacks<Cursor>() {
+
+			@Override
+			public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+				return new CursorLoader(NotesList.this, 
+						contentUri, 
+						PROJECTION,
+						null,
+						null,
+						CloudNotebook.Notes.DEFAULT_SORT_ORDER);
+			}
+
+			@Override
+			public void onLoadFinished(Loader<Cursor> arg0, Cursor arg1) {
+				mAdapter.swapCursor(arg1);
+			}
+
+			@Override
+			public void onLoaderReset(Loader<Cursor> arg0) {
+				mAdapter.swapCursor(null);
+			}
+		});
     }
 
     /**

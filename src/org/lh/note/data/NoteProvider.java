@@ -699,12 +699,7 @@ public class NoteProvider extends ContentProvider implements PipeDataWriter<Curs
                  * Starts creating the final WHERE clause by restricting it to the incoming
                  * note ID.
                  */
-                finalWhere =
-                        CloudNotebook.Notes._ID +                              // The ID column name
-                        " = " +                                          // test for equality
-                        uri.getPathSegments().                           // the incoming note ID
-                            get(CloudNotebook.Notes.NOTE_ID_PATH_POSITION)
-                ;
+                finalWhere = CloudNotebook.Notes._ID + " = " + noteId;
 
                 // If there were additional selection criteria, append them to the final WHERE
                 // clause

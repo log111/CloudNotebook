@@ -38,8 +38,7 @@
 
         <activity
             android:name=".MainpageActivity"
-            android:label="@string/app_name"
-            android:windowSoftInputMode="adjustResize|stateVisible" >
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

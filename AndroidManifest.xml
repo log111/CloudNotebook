@@ -32,8 +32,7 @@
         android:allowBackup="false"
     >
         <provider android:name="org.lh.note.data.NoteProvider"
-            android:authorities="com.google.provider.NotePad"
-            android:exported="false">
+            android:authorities="org.lh.CloudNotebook">
             <grant-uri-permission android:pathPattern=".*" />
         </provider>
 
@@ -77,7 +76,6 @@
         </activity>
 
         <activity android:name=".editor.NoteEditor"
-            android:exported="false"
             android:theme="@android:style/Theme.Holo.Light"
             android:screenOrientation="sensor"
             android:configChanges="keyboardHidden|orientation"
@@ -106,7 +104,6 @@
         </activity>
 
         <activity android:name=".editor.TitleEditor"
-            android:exported="false"
             android:label="@string/title_edit_title"
             android:icon="@drawable/ic_menu_edit"
             android:theme="@android:style/Theme.Holo.Dialog"
@@ -134,7 +131,6 @@
         </activity>
 
         <activity android:name="org.lh.note.NotesLiveFolder" 
-            android:exported="false"
             android:label="@string/live_folder_name"
             android:icon="@drawable/live_folder_notes">
             <intent-filter>

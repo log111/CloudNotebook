@@ -95,6 +95,7 @@ public class NotesList extends ListActivity {
             intent.setData(CloudNotebook.Notes.CONTENT_URI);
         }
         me = Mcs.getCurrentUser();
+        Log.d(TAG, (me == null) ? "me is null" : "me not null" );
 
         /*
          * Sets the callback for context menu activation for the ListView. The listener is set

@@ -247,6 +247,8 @@ public class NoteEditor extends Activity {
         }
     }
 
+    
+    
     /**
      * This method is called when the Activity is about to come to the foreground. This happens
      * when the Activity comes to the top of the task stack, OR when it is first starting.

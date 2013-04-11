@@ -1,6 +1,10 @@
-package org.lh.note.auth;
+package org.lh.note;
 
 import org.lh.note.R;
+import org.lh.note.auth.LoginActivity;
+import org.lh.note.auth.SignupActivity;
+
+import com.baidu.mcs.Mcs;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -15,6 +19,7 @@ public class MainpageActivity extends Activity {
 		
 		setContentView(R.layout.activity_mainpage);
 		
+		//The following buttons both send an intent to start NoteList.
 		findViewById(R.id.to_login_button).setOnClickListener(
 				new View.OnClickListener() {
 					
@@ -35,5 +40,7 @@ public class MainpageActivity extends Activity {
 						MainpageActivity.this.startActivity(i);
 					}
 				});
+
+		Mcs.init(getApplicationContext(), "appid38fvp7a7z5", "nX6S9rt5MMEdBlYtaA1ZzxdH");
 	}
 }

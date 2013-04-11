@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.lh.note;
+package org.lh.note.data;
 
 import android.net.Uri;
 import android.provider.BaseColumns;
@@ -26,7 +26,7 @@ import android.provider.BaseColumns;
  * URIs. A well-written client depends only on the constants in the contract.
  */
 public final class CloudNotebook {
-    public static final String AUTHORITY = "com.google.provider.NotePad";
+    public static final String AUTHORITY = "org.lh.CloudNotebook";
 
     // This class cannot be instantiated
     private CloudNotebook() {
@@ -105,13 +105,13 @@ public final class CloudNotebook {
         /**
          * The MIME type of {@link #CONTENT_URI} providing a directory of notes.
          */
-        public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.google.note";
+        public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.org.lh.note";
 
         /**
          * The MIME type of a {@link #CONTENT_URI} sub-directory of a single
          * note.
          */
-        public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.google.note";
+        public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.org.lh.note";
 
         /**
          * The default sort order for this table

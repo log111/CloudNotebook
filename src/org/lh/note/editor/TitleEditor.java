@@ -16,8 +16,8 @@
 
 package org.lh.note.editor;
 
-import org.lh.note.CloudNotebook;
 import org.lh.note.R;
+import org.lh.note.data.CloudNotebook;
 
 import android.app.Activity;
 import android.content.ContentValues;

@@ -16,8 +16,10 @@
 
 package org.lh.note.editor;
 
-import org.lh.note.CloudNotebook;
+import java.io.ByteArrayInputStream;
+
 import org.lh.note.R;
+import org.lh.note.data.CloudNotebook;
 
 import android.app.Activity;
 import android.content.ClipData;
@@ -40,6 +42,9 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.EditText;
+
+import com.baidu.mcs.callback.FileDeleteCallback;
+import com.baidu.mcs.callback.FileUploadCallback;
 
 /**
  * This Activity handles "editing" a note, where editing is responding to
@@ -71,8 +76,8 @@ public class NoteEditor extends Activity {
 
     // This Activity can be started by more than one action. Each action is represented
     // as a "state" constant
-    private static final int STATE_EDIT = 0;
-    private static final int STATE_INSERT = 1;
+    private static final int STATE_EDIT = 0; //editing a note
+    private static final int STATE_INSERT = 1;//creating a new note
 
     // Global mutable variables
     private int mState;
@@ -80,6 +85,8 @@ public class NoteEditor extends Activity {
     private Cursor mCursor;
     private EditText mText;
     private String mOriginalContent;
+    
+    private String cloudBucket = CloudNotebook.AUTHORITY;
 
     /**
      * Defines a custom EditText View that draws lines between each line of text that is displayed.
@@ -579,8 +586,17 @@ public class NoteEditor extends Activity {
                 null,    // No selection criteria are used, so no where columns are necessary.
                 null     // No where columns are used, so no where arguments are necessary.
             );
-
-
+        
+        com.baidu.mcs.File.uploadAsync(cloudBucket, 
+        		title, 
+        		new ByteArrayInputStream(text.getBytes()), 
+        		new FileUploadCallback(){
+        	public void onSuccess(String requestId){        		
+        	}
+        	
+        	public void onFailure(Throwable paramThrowable){
+        	}
+        });
     }
 
     /**
@@ -610,10 +626,23 @@ public class NoteEditor extends Activity {
      */
     private final void deleteNote() {
         if (mCursor != null) {
-            mCursor.close();
+            int colTitleIndex = mCursor.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_TITLE);
+        	String title = mCursor.getString(colTitleIndex);
+        	
+        	mCursor.close();
             mCursor = null;
             getContentResolver().delete(mUri, null, null);
             mText.setText("");
+            
+            com.baidu.mcs.File.deleteAsync(cloudBucket, 
+            		title, 
+            		new FileDeleteCallback(){
+            	public void onSuccess(String requestId){        		
+            	}
+            	
+            	public void onFailure(Throwable paramThrowable){
+            	}
+            });
         }
     }
 }

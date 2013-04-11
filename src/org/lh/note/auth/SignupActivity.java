@@ -1,8 +1,6 @@
 package org.lh.note.auth;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import org.lh.note.NotesList;
 import org.lh.note.R;
 
 import android.animation.Animator;
@@ -14,6 +12,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.View;
@@ -21,16 +20,16 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.baidu.mcs.User;
+import com.baidu.mcs.callback.UserCallback;
+
 /**
  * Activity which displays a login screen to the user, offering registration as
  * well.
  */
 public class SignupActivity extends Activity {
-	/**
-	 * A dummy authentication store containing known user names and passwords.
-	 * TODO: remove after connecting to a real authentication system.
-	 */
-	private static final Map<String, String> DUMMY_CREDENTIALS = new HashMap<String, String>();	
+	
+	private static String TAG = "SignupActivity";
 	
 	/**
 	 * The default email to populate the email field with.
@@ -40,7 +39,7 @@ public class SignupActivity extends Activity {
 	/**
 	 * Keep track of the login task to ensure we can cancel it if requested.
 	 */
-	private UserSignupTask mAuthTask = null;
+	//private UserSignupTask mAuthTask = null;
 
 	// Values for email and password at the time of the login attempt.
 	private String mUsername;
@@ -108,9 +107,10 @@ public class SignupActivity extends Activity {
 	 * errors are presented and no actual login attempt is made.
 	 */
 	public void attemptSignup() {
+		/*
 		if (mAuthTask != null) {
 			return;
-		}
+		}*/
 
 		// Reset errors.
 		mEmailView.setError(null);
@@ -156,15 +156,48 @@ public class SignupActivity extends Activity {
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
 			showProgress(true);
 			
-			mAuthTask = new UserSignupTask();
-			mAuthTask.execute((Void) null);
-			/**
-			 * TODO
-			 com.baidu.mcs.User user = new com.baidu.mcs.User();
-			 user.setUserName(mEmail);
-			 user.setPassword(mPassword);
-			 user.signupAsync(new UserSignupTask());
-			 */
+			//mAuthTask = new UserSignupTask();
+			//mAuthTask.execute((Void) null);
+			
+			User user = new User(getApplicationContext());
+			user.setUserName(mUsername);
+			user.setPassword(mPassword);
+			user.signupAsync(new UserCallback(){
+			 	@Override
+			 	public void onSuccess(User user){
+			 		
+					user.loginAsync(new UserCallback(){
+					 	@Override
+					 	public void onSuccess(User user){
+					 		
+					 		Intent i = new Intent();
+					 		i.setClassName("org.lh.note", "org.lh.note.NotesList");
+							startActivity(i);
+							
+							showProgress(false);
+					 	}
+					 	
+					 	@Override
+					 	public void onFailure(java.lang.Throwable paramThrowable){
+					 		showProgress(false);
+					 		mPasswordView
+								.setError(getString(R.string.error_incorrect_password));
+							mPasswordView.requestFocus();
+					 	}
+					});
+			 	}
+			 	
+			 	@Override
+			 	public void onFailure(java.lang.Throwable paramThrowable){
+			 		Log.d(TAG, paramThrowable.getMessage());
+			 		
+			 		showProgress(false);
+			 		mUserView
+		 				.setError(getString(R.string.error_fail_to_register));
+			 		mUserView.requestFocus();
+			 	}
+			 });
+			 
 		}
 	}
 
@@ -208,37 +241,17 @@ public class SignupActivity extends Activity {
 			mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
 		}
 	}
-
-	/**
-	 class UserSignupTask extends com.baidu.mcs.callbacks.UserCallback{
-	 	@Override
-	 	public void onSuccess(User user){
-	 		showProgress(false);
-			
-			user.setUserName(mEmail);
-			user.setPassword(mPassword);
-			user.loginAsync(new LoginActivity.UserLoginTask());
-			
-			Intent intent = new Intent();
-			intent.setClassName("org.lh.note", "org.lh.note.NotesList");
-			startActivity(intent);
-	 	}
-	 	
-	 	@Override
-	 	public void onFailure(java.lang.Throwable paramThrowable){
-	 		showProgress(false);
-	 		mPasswordView
-				.setError(getString(R.string.error_incorrect_password));
-			mPasswordView.requestFocus();
-	 	}
-	 }
-	 */
-	 
+	
 	/**
 	 * Represents an asynchronous login/registration task used to authenticate
 	 * the user.
 	 */
+	/*
 	public class UserSignupTask extends AsyncTask<Void, Void, Boolean> {
+		
+		private boolean isRegistered = false;
+		private CredentialStore.User me;
+		
 		@Override
 		protected Boolean doInBackground(Void... params) {
 			// TODO: attempt authentication against a network service.
@@ -260,23 +273,35 @@ public class SignupActivity extends Activity {
 			if(! store.setUser(usr)){
 				return false;
 			}else{
-				return null != store.getUser(mUsername, mPassword);
+				isRegistered = true;
+				me = store.getUser(mUsername, mPassword);
+				return null != me;
 			}
 		}
 
 		@Override
 		protected void onPostExecute(final Boolean success) {
 			mAuthTask = null;
-			showProgress(false);
 
 			if (success) {
 				Intent intent = new Intent();
+				intent.putExtra("user", me);
 				intent.setClassName("org.lh.note", "org.lh.note.NotesList");
 				startActivity(intent);
+				
+				showProgress(false);
 			} else {
-				mPasswordView
+				showProgress(false);
+				
+				if(! isRegistered){
+					mUserView
+						.setError(getString(R.string.error_fail_to_register));
+					mUserView.requestFocus();
+				}else{
+					mPasswordView
 						.setError(getString(R.string.error_incorrect_password));
-				mPasswordView.requestFocus();
+					mPasswordView.requestFocus();
+				}
 			}
 		}
 
@@ -286,4 +311,5 @@ public class SignupActivity extends Activity {
 			showProgress(false);
 		}
 	}
+	*/
 }

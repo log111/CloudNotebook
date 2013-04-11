@@ -25,7 +25,6 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 
-import org.lh.note.CloudNotebook;
 
 import android.content.ClipDescription;
 import android.content.ContentProvider;
@@ -54,7 +53,7 @@ import android.util.Log;
  */
 public class NoteProvider extends ContentProvider implements PipeDataWriter<Cursor> {
     // Used for debugging and logging
-    private static final String TAG = "NotePadProvider";
+    private static final String TAG = "NoteProvider";
 
     /**
      * The database that the provider uses as its underlying data store

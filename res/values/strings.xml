@@ -25,6 +25,7 @@
     <string name="action_to_login">Log me in</string>
     <string name="action_to_sign_up">Sign me up</string>
     <string name="action_login">Go</string>
+    <string name="action_signup">Sign up</string>
     <string name="action_sign_in_short">Sign in</string>
     <string name="menu_forgot_password">Recover lost password</string>
     <string name="login_progress_signing_in">Signing in&#8230;</string>
@@ -32,6 +33,7 @@
     <string name="error_invalid_password">This password is too short</string>
     <string name="error_incorrect_password">This password is incorrect</string>
     <string name="error_field_required">This field is required</string>
+    <string name="error_fail_to_register">User exists</string>
     
     
     <!-- Strings related to menu -->
@@ -42,6 +44,7 @@
     <string name="menu_revert">Revert changes</string>
     <string name="menu_copy">Copy</string>
     <string name="menu_paste">Paste</string>
+    <string name="menu_logout">Logout</string>
     
 	<!-- Strings related to editor -->
     <string name="title_edit_title">Note title:</string>

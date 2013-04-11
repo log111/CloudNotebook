@@ -18,6 +18,9 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.baidu.mcs.User;
+import com.baidu.mcs.callback.UserCallback;
+
 /**
  * Activity which displays a login screen to the user, offering registration as
  * well.
@@ -27,11 +30,6 @@ public class LoginActivity extends Activity {
 	 * The default email to populate the email field with.
 	 */
 	public static final String EXTRA_EMAIL = "com.example.android.authenticatordemo.extra.EMAIL";
-
-	/**
-	 * Keep track of the login task to ensure we can cancel it if requested.
-	 */
-	private UserLoginTask mAuthTask = null;
 
 	// Values for email and password at the time of the login attempt.
 	private String mUsername;
@@ -52,7 +50,7 @@ public class LoginActivity extends Activity {
 
 		// Set up the login form.
 		mUsername = getIntent().getStringExtra(EXTRA_EMAIL);
-		mUserView = (EditText) findViewById(R.id.email);
+		mUserView = (EditText) findViewById(R.id.username);
 		mUserView.setText(mUsername);
 
 		mPasswordView = (EditText) findViewById(R.id.password);
@@ -95,10 +93,6 @@ public class LoginActivity extends Activity {
 	 * errors are presented and no actual login attempt is made.
 	 */
 	public void attemptLogin() {
-		if (mAuthTask != null) {
-			return;
-		}
-
 		// Reset errors.
 		mUserView.setError(null);
 		mPasswordView.setError(null);
@@ -138,15 +132,30 @@ public class LoginActivity extends Activity {
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
 			showProgress(true);
 			
-			mAuthTask = new UserLoginTask();
-			mAuthTask.execute((Void) null);
-			/**
-			 * TODO
-			 com.baidu.mcs.User user = new com.baidu.mcs.User();
-			 user.setUserName(mEmail);
-			 user.setPassword(mPassword);
-			 user.loginAsync(new UserLoginTask());
-			 */
+			//mAuthTask = new UserLoginTask();
+			//mAuthTask.execute((Void) null);
+			
+			User user = new User(getApplicationContext());
+			user.setUserName(mUsername);
+			user.setPassword(mPassword);
+			user.loginAsync(new UserCallback(){
+			 	@Override
+			 	public void onSuccess(User user){
+			 		
+					Intent intent = new Intent();
+					intent.setClassName("org.lh.note", "org.lh.note.NotesList");
+					startActivity(intent);
+					showProgress(false);
+			 	}
+			 	
+			 	@Override
+			 	public void onFailure(java.lang.Throwable paramThrowable){
+			 		showProgress(false);
+			 		mPasswordView
+						.setError(getString(R.string.error_incorrect_password));
+					mPasswordView.requestFocus();
+			 	}
+			 });
 		}
 	}
 
@@ -188,71 +197,6 @@ public class LoginActivity extends Activity {
 			// and hide the relevant UI components.
 			mLoginStatusView.setVisibility(show ? View.VISIBLE : View.GONE);
 			mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-		}
-	}
-
-	/**
-	 public class UserLoginTask extends com.baidu.mcs.callbacks.LoginCallback{
-	 	@Override
-	 	public void onSuccess(User user){
-	 		showProgress(false);
-			Intent intent = new Intent();
-			intent.setClassName("org.lh.note", "org.lh.note.NotesList");
-			startActivity(intent);
-	 	}
-	 	
-	 	@Override
-	 	public void onFailure(java.lang.Throwable paramThrowable){
-	 		showProgress(false);
-	 		mPasswordView
-				.setError(getString(R.string.error_incorrect_password));
-			mPasswordView.requestFocus();
-	 	}
-	 }
-	 */
-	 
-	/**
-	 * Represents an asynchronous login/registration task used to authenticate
-	 * the user.
-	 */
-	public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-		@Override
-		protected Boolean doInBackground(Void... params) {
-			// TODO: attempt authentication against a network service.
-
-			try {
-				// Simulate network access.
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
-				return false;
-			}
-			
-			CredentialStore store = CredentialStore.getInstance();
-			CredentialStore.User usr = store.getUser(mUsername, mPassword);
-			return usr != null;
-		}
-
-		@Override
-		protected void onPostExecute(final Boolean success) {
-			mAuthTask = null;
-			showProgress(false);
-
-			if (success) {
-				//finish();
-				Intent intent = new Intent();
-				intent.setClassName("org.lh.note", "org.lh.note.NotesList");
-				startActivity(intent);
-			} else {
-				mPasswordView
-						.setError(getString(R.string.error_incorrect_password));
-				mPasswordView.requestFocus();
-			}
-		}
-
-		@Override
-		protected void onCancelled() {
-			mAuthTask = null;
-			showProgress(false);
 		}
 	}
 }

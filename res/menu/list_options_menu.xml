@@ -12,4 +12,9 @@
           android:icon="@drawable/ic_menu_compose"
           android:title="@string/menu_paste"
           android:alphabeticShortcut='p' />
+    <item android:id="@+id/menu_logout"
+          android:icon="@drawable/ic_menu_compose"
+          android:title="@string/menu_logout"
+          android:alphabeticShortcut='l'
+          android:showAsAction="always" />
 </menu>

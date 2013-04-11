@@ -16,6 +16,8 @@
 
 package org.lh.note;
 
+import org.lh.note.data.CloudNotebook;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.content.Intent.ShortcutIconResource;

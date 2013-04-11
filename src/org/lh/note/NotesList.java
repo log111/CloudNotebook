@@ -16,6 +16,7 @@
 
 package org.lh.note;
 
+import org.lh.note.data.CloudNotebook;
 import org.lh.note.data.NoteProvider;
 
 import android.app.ListActivity;
@@ -39,6 +40,10 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
+import com.baidu.mcs.Mcs;
+import com.baidu.mcs.User;
+import com.baidu.mcs.callback.UserLogoutCallback;
+
 /**
  * Displays a list of notes. Will display notes from the {@link Uri}
  * provided in the incoming Intent if there is one, otherwise it defaults to displaying the
@@ -53,6 +58,8 @@ public class NotesList extends ListActivity {
 
     // For logging and debugging
     private static final String TAG = "NotesList";
+    
+    private User me = null;
 
     /**
      * The columns needed by the cursor adapter
@@ -87,6 +94,7 @@ public class NotesList extends ListActivity {
         if (intent.getData() == null) {
             intent.setData(CloudNotebook.Notes.CONTENT_URI);
         }
+        me = Mcs.getCurrentUser();
 
         /*
          * Sets the callback for context menu activation for the ListView. The listener is set
@@ -252,7 +260,7 @@ public class NotesList extends ListActivity {
      * This method is called when the user selects an option from the menu, but no item
      * in the list is selected. If the option was INSERT, then a new Intent is sent out with action
      * ACTION_INSERT. The data from the incoming Intent is put into the new Intent. In effect,
-     * this triggers the NoteEditor activity in the NotePad application.
+     * this triggers the NoteEditor activity in the CloudNotebook application.
      *
      * If the item was not INSERT, then most likely it was an alternative option from another
      * application. The parent method is called to process the item.
@@ -279,6 +287,24 @@ public class NotesList extends ListActivity {
            */
           startActivity(new Intent(Intent.ACTION_PASTE, getIntent().getData()));
           return true;
+        case R.id.menu_logout:
+        	final Context ctx = this;
+        	me.logoutAsync(new UserLogoutCallback() {
+				
+				@Override
+				public void onSuccess(String requestId) {
+					me = null;
+		        	Intent i = new Intent();
+		        	i.setClass(ctx, MainpageActivity.class);
+		        	startActivity(i);
+				}
+				
+				@Override
+				public void onFailure(Throwable arg0) {
+					// TODO Auto-generated method stub
+				}
+			});
+        	
         default:
             return super.onOptionsItemSelected(item);
         }

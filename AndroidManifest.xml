@@ -25,6 +25,8 @@
     <uses-sdk android:minSdkVersion="11" 
         android:targetSdkVersion="17"/>
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+    
     <application android:icon="@drawable/app_notes"
         android:label="@string/app_name"
         android:allowBackup="false"
@@ -36,7 +38,7 @@
         </provider>
 
         <activity
-            android:name=".auth.MainpageActivity"
+            android:name=".MainpageActivity"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustResize|stateVisible" >
             <intent-filter>
@@ -59,18 +61,18 @@
         
         <activity android:name=".NotesList" 
             android:label="@string/title_notes_list"
-            android:exported="false">
+            >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.EDIT" />
                 <action android:name="android.intent.action.PICK" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.dir/vnd.google.note" />
+                <data android:mimeType="vnd.android.cursor.dir/vnd.org.lh.note" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.item/vnd.google.note" />
+                <data android:mimeType="vnd.android.cursor.item/vnd.org.lh.note" />
             </intent-filter>
         </activity>
 
@@ -87,7 +89,7 @@
                 <action android:name="android.intent.action.EDIT" />
                 <action android:name="com.android.notepad.action.EDIT_NOTE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.item/vnd.google.note" />
+                <data android:mimeType="vnd.android.cursor.item/vnd.org.lh.note" />
             </intent-filter>
 
             <!-- This filter says that we can create a new note inside
@@ -98,7 +100,7 @@
                 <action android:name="android.intent.action.INSERT" />
                 <action android:name="android.intent.action.PASTE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.dir/vnd.google.note" />
+                <data android:mimeType="vnd.android.cursor.dir/vnd.org.lh.note" />
             </intent-filter>
 
         </activity>
@@ -127,7 +129,7 @@
                      can perform when selecting this type of data. -->
                 <category android:name="android.intent.category.SELECTED_ALTERNATIVE" />
                 <!-- This is the data type we operate on. -->
-                <data android:mimeType="vnd.android.cursor.item/vnd.google.note" />
+                <data android:mimeType="vnd.android.cursor.item/vnd.org.lh.note" />
             </intent-filter>
         </activity>
 

@@ -16,6 +16,12 @@
 
 package org.lh.note;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.lh.note.data.CloudNotebook;
 import org.lh.note.data.NoteProvider;
 
@@ -43,9 +49,11 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
+import com.baidu.mcs.File;
 import com.baidu.mcs.Mcs;
 import com.baidu.mcs.User;
 import com.baidu.mcs.callback.FileDeleteCallback;
+import com.baidu.mcs.callback.FileListCallback;
 import com.baidu.mcs.callback.UserLogoutCallback;
 
 /**
@@ -145,8 +153,37 @@ public class NotesList extends ListActivity {
 			}
 
 			@Override
-			public void onLoadFinished(Loader<Cursor> arg0, Cursor arg1) {
-				mAdapter.swapCursor(arg1);
+			public void onLoadFinished(Loader<Cursor> arg0, Cursor data) {
+				if(null == data){
+					File.listFileAsync(new FileListCallback(){
+
+						@Override
+						public void onFailure(Throwable arg0) {
+							Log.d(TAG, "fail to retrieve the file list");
+						}
+
+						@Override
+						public void onSuccess(File arg0) {
+							List<String> slist = new ArrayList<String>();
+							try{
+								JSONObject resp = (JSONObject)arg0.get(CloudNotebook.RESPONSE);
+								JSONArray flist = resp.getJSONArray(CloudNotebook.FILELIST);
+								int len = flist.length();
+								for(int i=0;i<len;i++){
+									JSONObject object = flist.getJSONObject(i);
+									String title = object.getString(CloudNotebook.TITLE);
+									slist.add(title);
+								}
+							}catch(JSONException e){
+								Log.d(TAG, "fail to retrieve the file list");
+							}
+							setListView();
+						}
+						
+					});
+				}else{
+					mAdapter.swapCursor(data);
+				}
 			}
 
 			@Override

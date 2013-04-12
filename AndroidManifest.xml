@@ -75,7 +75,6 @@
         </activity>
 
         <activity android:name=".editor.NoteEditor"
-            android:theme="@android:style/Theme.Holo.Light"
             android:screenOrientation="sensor"
             android:configChanges="keyboardHidden|orientation"
         >
@@ -105,7 +104,6 @@
         <activity android:name=".editor.TitleEditor"
             android:label="@string/title_edit_title"
             android:icon="@drawable/ic_menu_edit"
-            android:theme="@android:style/Theme.Holo.Dialog"
             android:windowSoftInputMode="stateVisible">
             <!-- This activity implements an alternative action that can be
                  performed on notes: editing their title.  It can be used as

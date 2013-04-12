@@ -37,8 +37,6 @@ public class SignupActivity extends Activity {
 	/**
 	 * Keep track of the login task to ensure we can cancel it if requested.
 	 */
-	//private UserSignupTask mAuthTask = null;
-
 	// Values for email and password at the time of the login attempt.
 	private String mUsername;
 	private String mEmail;
@@ -105,11 +103,6 @@ public class SignupActivity extends Activity {
 	 * errors are presented and no actual login attempt is made.
 	 */
 	public void attemptSignup() {
-		/*
-		if (mAuthTask != null) {
-			return;
-		}*/
-
 		// Reset errors.
 		mEmailView.setError(null);
 		mPasswordView.setError(null);
@@ -153,9 +146,6 @@ public class SignupActivity extends Activity {
 			// perform the user login attempt.
 			mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
 			showProgress(true);
-			
-			//mAuthTask = new UserSignupTask();
-			//mAuthTask.execute((Void) null);
 			
 			User user = new User(getApplicationContext());
 			user.setUserName(mUsername);

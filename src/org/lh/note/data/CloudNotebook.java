@@ -29,7 +29,10 @@ public final class CloudNotebook {
     public static final String AUTHORITY = "org.lh.CloudNotebook";
     
     public static final String CLOUD_BUCKET = "mcstest";
-
+    public static final String RESPONSE = "response_params";
+    public static final String FILELIST = "fileinfo";
+    public static final String TITLE = "fileName";
+    
     // This class cannot be instantiated
     private CloudNotebook() {
     }

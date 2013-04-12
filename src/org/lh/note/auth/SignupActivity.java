@@ -163,10 +163,12 @@ public class SignupActivity extends Activity {
 			user.signupAsync(new UserCallback(){
 			 	@Override
 			 	public void onSuccess(User user){
+			 		Log.d(TAG, "UserCallback.onSuccess");
 			 		
 					user.loginAsync(new UserCallback(){
 					 	@Override
 					 	public void onSuccess(User user){
+					 		finish();
 					 		
 					 		Intent i = new Intent();
 					 		i.setClassName("org.lh.note", "org.lh.note.NotesList");
@@ -177,6 +179,7 @@ public class SignupActivity extends Activity {
 					 	
 					 	@Override
 					 	public void onFailure(java.lang.Throwable paramThrowable){
+					 		finish();
 					 		showProgress(false);
 					 		mPasswordView
 								.setError(getString(R.string.error_incorrect_password));
@@ -187,6 +190,7 @@ public class SignupActivity extends Activity {
 			 	
 			 	@Override
 			 	public void onFailure(java.lang.Throwable paramThrowable){
+			 		Log.d(TAG, "UserCallback.onFailure");
 			 		Log.d(TAG, paramThrowable.getMessage());
 			 		
 			 		showProgress(false);

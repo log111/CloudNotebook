@@ -45,6 +45,7 @@ import android.widget.SimpleCursorAdapter;
 
 import com.baidu.mcs.Mcs;
 import com.baidu.mcs.User;
+import com.baidu.mcs.callback.FileDeleteCallback;
 import com.baidu.mcs.callback.UserLogoutCallback;
 
 /**
@@ -304,14 +305,16 @@ public class NotesList extends ListActivity {
 				@Override
 				public void onSuccess(String requestId) {
 					me = null;
+					finish();
 		        	Intent i = new Intent();
+			 		i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		        	i.setClass(ctx, MainpageActivity.class);
 		        	startActivity(i);
 				}
 				
 				@Override
 				public void onFailure(Throwable arg0) {
-					// TODO Auto-generated method stub
+					Log.d(TAG, "logoutAsync fail");
 				}
 			});
         	
@@ -449,7 +452,31 @@ public class NotesList extends ListActivity {
             return true;
 
         case R.id.context_delete:
-  
+        	Cursor noteCur = null;
+        	try{
+	        	noteCur = getContentResolver().query(noteUri, 
+	            		new String[]{CloudNotebook.Notes.COLUMN_NAME_TITLE}, 
+	            		null, null, null);
+	        	
+	        	if(noteCur.moveToFirst()){
+	        		String title = noteCur.getString(0);
+	        		
+	        		com.baidu.mcs.File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
+	                		title, 
+	                		new FileDeleteCallback(){
+	                	public void onSuccess(String requestId){
+	                		Log.d(TAG, "FileDeleteCallback.onSuccess");
+	                	}
+	                	
+	                	public void onFailure(Throwable paramThrowable){
+	                		Log.d(TAG, "FileDeleteCallback.onFailure");
+	                	}
+	                });
+	        	}
+        	}finally{
+        		noteCur.close();
+        	}
+        	
             // Deletes the note from the provider by passing in a URI in note ID format.
             // Please see the introductory note about performing provider operations on the
             // UI thread.
@@ -459,7 +486,8 @@ public class NotesList extends ListActivity {
                           // passed in.
                 null      // No where clause is used, so no where arguments are needed.
             );
-  
+            
+            Log.d(TAG, "local note deleted");
             // Returns to the caller and skips further processing.
             return true;
         default:

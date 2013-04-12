@@ -27,6 +27,8 @@ import android.provider.BaseColumns;
  */
 public final class CloudNotebook {
     public static final String AUTHORITY = "org.lh.CloudNotebook";
+    
+    public static final String CLOUD_BUCKET = "mcstest";
 
     // This class cannot be instantiated
     private CloudNotebook() {

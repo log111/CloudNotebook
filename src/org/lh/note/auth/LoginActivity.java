@@ -13,6 +13,7 @@ import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.View;
+import android.view.ViewDebug.FlagToString;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -140,16 +141,20 @@ public class LoginActivity extends Activity {
 			user.loginAsync(new UserCallback(){
 			 	@Override
 			 	public void onSuccess(User user){
+			 		finish();
 			 		
-					Intent intent = new Intent();
+			 		Intent intent = new Intent();
 					intent.setClassName("org.lh.note", "org.lh.note.NotesList");
 					startActivity(intent);
+					
 					showProgress(false);
 			 	}
 			 	
 			 	@Override
 			 	public void onFailure(java.lang.Throwable paramThrowable){
+			 		finish();
 			 		showProgress(false);
+			 		
 			 		mPasswordView
 						.setError(getString(R.string.error_incorrect_password));
 					mPasswordView.requestFocus();

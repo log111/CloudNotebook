@@ -16,6 +16,8 @@
 
 package org.lh.note.editor;
 
+import java.io.ByteArrayInputStream;
+
 import org.lh.note.R;
 import org.lh.note.data.CloudNotebook;
 
@@ -46,6 +48,7 @@ import android.view.MenuItem;
 import android.widget.EditText;
 
 import com.baidu.mcs.callback.FileDeleteCallback;
+import com.baidu.mcs.callback.FileUploadCallback;
 
 /**
  * This Activity handles "editing" a note, where editing is responding to
@@ -87,8 +90,6 @@ public class NoteEditor extends Activity {
     private EditText mText;
     private String mOriginalContent;
     
-    private String cloudBucket = CloudNotebook.AUTHORITY;
-
     /**
      * Defines a custom EditText View that draws lines between each line of text that is displayed.
      */
@@ -238,15 +239,17 @@ public class NoteEditor extends Activity {
 
 		@Override
 		public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-			
+			Log.d(TAG, "onCreateLoader");
 			return new CursorLoader(NoteEditor.this, mUri, PROJECTION, null, null, null);
 		}
 
 		@Override
 		public void onLoadFinished(Loader<Cursor> arg0, Cursor data) {
+			Log.d(TAG, "onLoadFinished ent");
 			mCursor = data;
 			
 			if (data != null) {
+				Log.d(TAG, "got data");
 
 				data.moveToFirst();
 
@@ -272,11 +275,14 @@ public class NoteEditor extends Activity {
 	            setTitle(getText(R.string.error_title));
 	            mText.setText(getText(R.string.error_message));
 	        }
+			Log.d(TAG, "onLoadFinished ret");
 		}
 
 		@Override
 		public void onLoaderReset(Loader<Cursor> arg0) {
+			Log.d(TAG, "onLoaderReset ent");
 			mCursor = null;
+			Log.d(TAG, "onLoaderReset ret");
 		}
     	
     };
@@ -402,14 +408,16 @@ public class NoteEditor extends Activity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         // Check if note has changed and enable/disable the revert option
-        int colNoteIndex = mCursor.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_NOTE);
-        String savedNote = mCursor.getString(colNoteIndex);
-        String currentNote = mText.getText().toString();
-        if (savedNote.equals(currentNote)) {
-            menu.findItem(R.id.menu_revert).setVisible(false);
-        } else {
-            menu.findItem(R.id.menu_revert).setVisible(true);
-        }
+    	if(null != mCursor){
+	        int colNoteIndex = mCursor.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_NOTE);
+	        String savedNote = mCursor.getString(colNoteIndex);
+	        String currentNote = mText.getText().toString();
+	        if (savedNote.equals(currentNote)) {
+	            menu.findItem(R.id.menu_revert).setVisible(false);
+	        } else {
+	            menu.findItem(R.id.menu_revert).setVisible(true);
+	        }
+    	}
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -569,18 +577,20 @@ public class NoteEditor extends Activity {
                 null,    // No selection criteria are used, so no where columns are necessary.
                 null     // No where columns are used, so no where arguments are necessary.
             );
-        /*
-        com.baidu.mcs.File.uploadAsync(cloudBucket, 
+        final String mytitle = title;
+        com.baidu.mcs.File.uploadAsync(CloudNotebook.CLOUD_BUCKET, 
         		title, 
         		new ByteArrayInputStream(text.getBytes()), 
         		new FileUploadCallback(){
-        	public void onSuccess(String requestId){        		
+        	
+        	public void onSuccess(String requestId){
+        		Log.d(TAG, "note["+ mytitle +"] saved");
         	}
         	
         	public void onFailure(Throwable paramThrowable){
+        		Log.d(TAG, paramThrowable.getMessage());
         	}
         });
-        */
     }
 
     /**
@@ -609,6 +619,8 @@ public class NoteEditor extends Activity {
      * Take care of deleting a note.  Simply deletes the entry.
      */
     private final void deleteNote() {
+    	Log.d(TAG, "deleteNote");
+    	
         if (mCursor != null) {
             int colTitleIndex = mCursor.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_TITLE);
         	String title = mCursor.getString(colTitleIndex);
@@ -617,14 +629,17 @@ public class NoteEditor extends Activity {
             mCursor = null;
             getContentResolver().delete(mUri, null, null);
             mText.setText("");
+            Log.d(TAG, "local note deleted");
             
-            com.baidu.mcs.File.deleteAsync(cloudBucket, 
+            com.baidu.mcs.File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
             		title, 
             		new FileDeleteCallback(){
-            	public void onSuccess(String requestId){        		
+            	public void onSuccess(String requestId){
+            		Log.d(TAG, "FileDeleteCallback.onSuccess");
             	}
             	
             	public void onFailure(Throwable paramThrowable){
+            		Log.d(TAG, "FileDeleteCallback.onFailure");
             	}
             });
         }

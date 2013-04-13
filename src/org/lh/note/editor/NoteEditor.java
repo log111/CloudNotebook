@@ -17,6 +17,9 @@
 package org.lh.note.editor;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import org.lh.note.R;
 import org.lh.note.data.CloudNotebook;
@@ -47,7 +50,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.EditText;
 
+import com.baidu.mcs.File;
 import com.baidu.mcs.callback.FileDeleteCallback;
+import com.baidu.mcs.callback.FileDownloadCallback;
 import com.baidu.mcs.callback.FileUploadCallback;
 
 /**
@@ -86,9 +91,11 @@ public class NoteEditor extends Activity {
     // Global mutable variables
     private int mState;
     private Uri mUri;
+    private String mTitle;
     private Cursor mCursor;
     private EditText mText;
     private String mOriginalContent;
+    private boolean isSynced = false;
     
     /**
      * Defines a custom EditText View that draws lines between each line of text that is displayed.
@@ -169,7 +176,8 @@ public class NoteEditor extends Activity {
 
             // Sets the Activity state to EDIT, and gets the URI for the data to be edited.
             mState = STATE_EDIT;
-            mUri = intent.getData();
+            //mUri = intent.getData();
+            mTitle = intent.getExtras().getString("title");
 
             // For an insert or paste action:
         } else if (Intent.ACTION_INSERT.equals(action)
@@ -178,13 +186,14 @@ public class NoteEditor extends Activity {
             // Sets the Activity state to INSERT, gets the general note URI, and inserts an
             // empty record in the provider
             mState = STATE_INSERT;
-            mUri = getContentResolver().insert(intent.getData(), null);
+            //mUri = getContentResolver().insert(intent.getData(), null);
 
             /*
              * If the attempt to insert the new note fails, shuts down this Activity. The
              * originating Activity receives back RESULT_CANCELED if it requested a result.
              * Logs that the insert failed.
              */
+            /*
             if (mUri == null) {
 
                 // Writes the log identifier, a message, and the URI that failed.
@@ -193,11 +202,12 @@ public class NoteEditor extends Activity {
                 // Closes the activity.
                 finish();
                 return;
-            }
+            }*/
 
             // Since the new entry was created, this sets the result to be returned
             // set the result to be returned.
-            setResult(RESULT_OK, (new Intent()).setAction(mUri.toString()));
+            //setResult(RESULT_OK, (new Intent()).setAction(mUri.toString()));
+            //setResult(RESULT_OK, null);
 
         // If the action was other than EDIT or INSERT:
         } else {
@@ -231,61 +241,99 @@ public class NoteEditor extends Activity {
         if (savedInstanceState != null) {
             mOriginalContent = savedInstanceState.getString(ORIGINAL_CONTENT);
         }
-        
-        getLoaderManager().initLoader(0, null, noteLoader);
     }
+    
+    /**
+     * This method is called when the Activity is about to come to the foreground. This happens
+     * when the Activity comes to the top of the task stack, OR when it is first starting.
+     *
+     * Moves to the first note in the list, sets an appropriate title for the action chosen by
+     * the user, puts the note contents into the TextView, and saves the original text as a
+     * backup.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-    private LoaderCallbacks<Cursor> noteLoader = new LoaderCallbacks<Cursor>(){
-
-		@Override
-		public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-			Log.d(TAG, "onCreateLoader");
-			return new CursorLoader(NoteEditor.this, mUri, PROJECTION, null, null, null);
-		}
-
-		@Override
-		public void onLoadFinished(Loader<Cursor> arg0, Cursor data) {
-			Log.d(TAG, "onLoadFinished ent");
-			mCursor = data;
-			
-			if (data != null) {
-				Log.d(TAG, "got data");
-
-				data.moveToFirst();
-
-	            if (mState == STATE_EDIT) {
-	                // Set the title of the Activity to include the note title
-	                int colTitleIndex = data.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_TITLE);
-	                String title = data.getString(colTitleIndex);
-	                Resources res = getResources();
-	                String text = String.format(res.getString(R.string.title_edit), title);
-	                setTitle(text);
-	            } else if (mState == STATE_INSERT) {
-	                setTitle(getText(R.string.title_create));
-	            }
-
-	            int colNoteIndex = data.getColumnIndex(CloudNotebook.Notes.COLUMN_NAME_NOTE);
-	            String note = mCursor.getString(colNoteIndex);
-	            mText.setTextKeepState(note);
-
-	            if (mOriginalContent == null) {
-	                mOriginalContent = note;
-	            }
-	        } else {
-	            setTitle(getText(R.string.error_title));
-	            mText.setText(getText(R.string.error_message));
-	        }
-			Log.d(TAG, "onLoadFinished ret");
-		}
-
-		@Override
-		public void onLoaderReset(Loader<Cursor> arg0) {
-			Log.d(TAG, "onLoaderReset ent");
-			mCursor = null;
-			Log.d(TAG, "onLoaderReset ret");
-		}
+        // Modifies the window title for the Activity according to the current Activity state.
+        if (mState == STATE_EDIT) {
+            String text = String.format(getResources().getString(R.string.title_edit), mTitle);
+            setTitle(text);
+            
+            Log.d(TAG, "download file " + mTitle);
+            File.downloadAsync(
+            		CloudNotebook.CLOUD_BUCKET, 
+            		mTitle, 
+            		new FileDownloadCallback() {
+            			@Override
+        				public void onSuccess(InputStream arg0) {
+        					new DownloadNoteTask(NoteEditor.this).execute(arg0);
+        				}
+        				
+        				@Override
+        				public void onFailure(Throwable arg0) {
+        					setTitle(getText(R.string.error_title));
+        		            mText.setText(getText(R.string.error_message));
+        				}
+            		}
+                );
+        // Sets the title to "create" for inserts
+        } else if (mState == STATE_INSERT) {
+            setTitle(getText(R.string.title_create));
+        }
+    }
+    
+    private static class DownloadNoteTask extends AsyncTask<InputStream, Void, String>{
     	
-    };
+    	private NoteEditor mEditor = null;
+    	
+    	public DownloadNoteTask(NoteEditor editor){
+    		mEditor = editor;
+    	}
+    	
+    	@Override
+		protected String doInBackground(InputStream... arg) {
+			
+			InputStreamReader in = new InputStreamReader(arg[0]);
+			StringBuilder sb = new StringBuilder();
+			char[] buf = new char[2048];
+			try{
+				int c = in.read(buf, 0, 2048);
+				while(c != -1){
+					sb.append(buf, 0, c);
+					c = in.read(buf, 0, 2048);    					
+				}
+				
+				return sb.toString();
+				
+			}catch(IOException e){
+				Log.e(TAG, e.getCause().getMessage());
+			}finally{
+				try{
+					in.close();
+				}catch(IOException e){
+					Log.e(TAG, e.getCause().getMessage());
+				}
+			}
+			return null;
+		}
+		
+		@Override
+		protected void onPostExecute(String note) {
+			super.onPostExecute(note);
+			Log.d(TAG, "downloaded note: " + note);
+			if(note != null){
+				mEditor.mText.setTextKeepState(note);
+				// Stores the original note text, to allow the user to revert changes.
+		        if (mEditor.mOriginalContent == null) {
+		        	mEditor.mOriginalContent = note;
+		        }
+			}else{
+				mEditor.setTitle(mEditor.getText(R.string.error_title));
+				mEditor.mText.setText(mEditor.getText(R.string.error_message));
+			}
+		}
+    }
     
     /**
      * This method is called when an Activity loses focus during its normal operation, and is then
@@ -302,20 +350,6 @@ public class NoteEditor extends Activity {
         outState.putString(ORIGINAL_CONTENT, mOriginalContent);
     }
     
-    private static class SaveNoteTask extends AsyncTask<Void, Void, Void>{
-
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-    	
-		@Override
-		protected void onPostExecute(Void result) {
-			// TODO Auto-generated method stub
-			super.onPostExecute(result);
-		}
-    }
     /**
      * This method is called when the Activity loses focus.
      *
@@ -333,36 +367,13 @@ public class NoteEditor extends Activity {
     	Log.d(TAG, "onPause");
         super.onPause();
 
-        /*
-         * Tests to see that the query operation didn't fail (see onCreate()). The Cursor object
-         * will exist, even if no records were returned, unless the query failed because of some
-         * exception or error.
-         *
-         */
-        new SaveNoteTask().execute((Void)null);
-        
-        if (mCursor != null) {
-
             // Get the current note text.
             String text = mText.getText().toString();
             int length = text.length();
 
-            /*
-             * If the Activity is in the midst of finishing and there is no text in the current
-             * note, returns a result of CANCELED to the caller, and deletes the note. This is done
-             * even if the note was being edited, the assumption being that the user wanted to
-             * "clear out" (delete) the note.
-             */
             if (isFinishing() && (length == 0)) {
                 setResult(RESULT_CANCELED);
                 deleteNote();
-
-                /*
-                 * Writes the edits to the provider. The note has been edited if an existing note was
-                 * retrieved into the editor *or* if a new note was inserted. In the latter case,
-                 * onCreate() inserted a new empty note into the provider, and it is this new note
-                 * that is being edited.
-                 */
             } else if (mState == STATE_EDIT) {
                 // Creates a map to contain the new values for the columns
                 updateNote(text, null);
@@ -370,7 +381,6 @@ public class NoteEditor extends Activity {
                 updateNote(text, text);
                 mState = STATE_EDIT;
           }
-        }
     }
 
     /**
@@ -435,9 +445,9 @@ public class NoteEditor extends Activity {
         // Handle all of the possible menu actions.
         switch (item.getItemId()) {
         case R.id.menu_save:
+        	Log.d(TAG, "menu save clicked");
             String text = mText.getText().toString();
             updateNote(text, null);
-            finish();
             break;
         case R.id.menu_delete:
             deleteNote();
@@ -524,11 +534,6 @@ public class NoteEditor extends Activity {
      */
     private final void updateNote(String text, String title) {
 
-        // Sets up a map to contain values to be updated in the provider.
-        ContentValues values = new ContentValues();
-        values.put(CloudNotebook.Notes.COLUMN_NAME_MODIFICATION_DATE, System.currentTimeMillis());
-
-        // If the action is to insert a new note, this creates an initial title for it.
         if (mState == STATE_INSERT) {
 
             // If no title was provided as an argument, create one from the note text.
@@ -550,47 +555,28 @@ public class NoteEditor extends Activity {
                     }
                 }
             }
-            // In the values map, sets the value of the title
-            values.put(CloudNotebook.Notes.COLUMN_NAME_TITLE, title);
-        } else if (title != null) {
-            // In the values map, sets the value of the title
-            values.put(CloudNotebook.Notes.COLUMN_NAME_TITLE, title);
+            mTitle = title;
         }
 
-        // This puts the desired notes text into the map.
-        values.put(CloudNotebook.Notes.COLUMN_NAME_NOTE, text);
-
-        /*
-         * Updates the provider with the new values in the map. The ListView is updated
-         * automatically. The provider sets this up by setting the notification URI for
-         * query Cursor objects to the incoming URI. The content resolver is thus
-         * automatically notified when the Cursor for the URI changes, and the UI is
-         * updated.
-         * Note: This is being done on the UI thread. It will block the thread until the
-         * update completes. In a sample app, going against a simple provider based on a
-         * local database, the block will be momentary, but in a real app you should use
-         * android.content.AsyncQueryHandler or android.os.AsyncTask.
-         */
-        getContentResolver().update(
-                mUri,    // The URI for the record to update.
-                values,  // The map of column names and new values to apply to them.
-                null,    // No selection criteria are used, so no where columns are necessary.
-                null     // No where columns are used, so no where arguments are necessary.
-            );
-        final String mytitle = title;
-        com.baidu.mcs.File.uploadAsync(CloudNotebook.CLOUD_BUCKET, 
-        		title, 
+        File.uploadAsync(
+        		CloudNotebook.CLOUD_BUCKET, 
+        		mTitle, 
         		new ByteArrayInputStream(text.getBytes()), 
         		new FileUploadCallback(){
         	
-        	public void onSuccess(String requestId){
-        		Log.d(TAG, "note["+ mytitle +"] saved");
-        	}
-        	
-        	public void onFailure(Throwable paramThrowable){
-        		Log.d(TAG, paramThrowable.getMessage());
-        	}
-        });
+		        	public void onSuccess(String requestId){
+		        		Log.d(TAG, "note["+ mTitle +"] saved");
+		        		setResult(RESULT_OK, new Intent().putExtra("title", mTitle));
+		        		finish();
+		        	}
+		        	
+		        	public void onFailure(Throwable paramThrowable){
+		        		Log.d(TAG, paramThrowable.getMessage());
+		        		setResult(RESULT_CANCELED, null);
+		        		finish();
+		        	}
+        		}
+        	);
     }
 
     /**

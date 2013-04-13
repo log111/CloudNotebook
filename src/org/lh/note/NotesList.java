@@ -17,6 +17,7 @@
 package org.lh.note;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -24,6 +25,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.lh.note.data.CloudNotebook;
 import org.lh.note.data.NoteProvider;
+import org.lh.note.editor.NoteEditor;
 
 import android.app.ListActivity;
 import android.app.LoaderManager;
@@ -38,6 +40,7 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager.OnActivityResultListener;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -46,6 +49,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
@@ -72,20 +77,8 @@ public class NotesList extends ListActivity {
     private static final String TAG = "NotesList";
     
     private User me = null;
-
-    /**
-     * The columns needed by the cursor adapter
-     */
-    private static final String[] PROJECTION = new String[] {
-            CloudNotebook.Notes._ID, // 0
-            CloudNotebook.Notes.COLUMN_NAME_TITLE, // 1
-    };
-
-    /** The index of the title column */
-    private static final int COLUMN_INDEX_TITLE = 1;
-    
+    private List<String> titleList = null;
     private Uri contentUri = null;
-    private SimpleCursorAdapter mAdapter = null;
 
     /**
      * onCreate is called when Android starts this Activity from scratch.
@@ -113,83 +106,39 @@ public class NotesList extends ListActivity {
         me = Mcs.getCurrentUser();
         Log.d(TAG, (me == null) ? "me is null" : "me not null" );
 
-        /*
-         * Sets the callback for context menu activation for the ListView. The listener is set
-         * to be this Activity. The effect is that context menus are enabled for items in the
-         * ListView, and the context menu is handled by a method in NotesList.
-         */
         getListView().setOnCreateContextMenuListener(this);
 
-        // The names of the cursor columns to display in the view, initialized to the title column
-        String[] dataColumns = { CloudNotebook.Notes.COLUMN_NAME_TITLE } ;
-
-        // The view IDs that will display the cursor columns, initialized to the TextView in
-        // noteslist_item.xml
-        int[] viewIDs = { android.R.id.text1 };
-
-        // Creates the backing adapter for the ListView.
-        mAdapter = new SimpleCursorAdapter(
-	              this,                             // The Context for the ListView
-	              R.layout.noteslist_item,          // Points to the XML for a list item
-	              null,                           // The cursor to get items from
-	              dataColumns,
-	              viewIDs,
-	              0
-	    );
-
-        // Sets the ListView's adapter to be the cursor adapter that was just created.
-        setListAdapter(mAdapter);
-        
-        getLoaderManager().initLoader(0, null, new LoaderManager.LoaderCallbacks<Cursor>() {
+        File.listFileAsync(new FileListCallback(){
 
 			@Override
-			public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-				return new CursorLoader(NotesList.this, 
-						contentUri, 
-						PROJECTION,
-						null,
-						null,
-						CloudNotebook.Notes.DEFAULT_SORT_ORDER);
+			public void onFailure(Throwable arg0) {
+				Log.d(TAG, "fail to retrieve the file list");
 			}
 
 			@Override
-			public void onLoadFinished(Loader<Cursor> arg0, Cursor data) {
-				if(null == data){
-					File.listFileAsync(new FileListCallback(){
-
-						@Override
-						public void onFailure(Throwable arg0) {
-							Log.d(TAG, "fail to retrieve the file list");
-						}
-
-						@Override
-						public void onSuccess(File arg0) {
-							List<String> slist = new ArrayList<String>();
-							try{
-								JSONObject resp = (JSONObject)arg0.get(CloudNotebook.RESPONSE);
-								JSONArray flist = resp.getJSONArray(CloudNotebook.FILELIST);
-								int len = flist.length();
-								for(int i=0;i<len;i++){
-									JSONObject object = flist.getJSONObject(i);
-									String title = object.getString(CloudNotebook.TITLE);
-									slist.add(title);
-								}
-							}catch(JSONException e){
-								Log.d(TAG, "fail to retrieve the file list");
-							}
-							setListView();
-						}
-						
-					});
-				}else{
-					mAdapter.swapCursor(data);
+			public void onSuccess(File arg0) {
+				List<String> slist = new ArrayList<String>();
+				try{
+					JSONObject resp = (JSONObject)arg0.get(CloudNotebook.RESPONSE);
+					JSONArray flist = resp.getJSONArray(CloudNotebook.FILELIST);
+					int len = flist.length();
+					for(int i=0;i<len;i++){
+						JSONObject object = flist.getJSONObject(i);
+						String title = object.getString(CloudNotebook.TITLE);
+						slist.add(title);
+					}
+					titleList = slist;
+					setListAdapter(
+						new ArrayAdapter<String>(
+								NotesList.this,
+								R.layout.noteslist_item, 
+								titleList.toArray(new String[0])
+						)
+					);
+				}catch(JSONException e){
+					Log.d(TAG, "fail to retrieve the file list");
 				}
-			}
-
-			@Override
-			public void onLoaderReset(Loader<Cursor> arg0) {
-				mAdapter.swapCursor(null);
-			}
+			}			
 		});
     }
 
@@ -223,7 +172,8 @@ public class NotesList extends ListActivity {
 
         return super.onCreateOptionsMenu(menu);
     }
-
+    
+    /*
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
@@ -273,11 +223,12 @@ public class NotesList extends ListActivity {
              * data. This prepares the Intent as a place to group alternative options in the
              * menu.
              */
-            intent.addCategory(Intent.CATEGORY_ALTERNATIVE);
+            //intent.addCategory(Intent.CATEGORY_ALTERNATIVE);
 
             /*
              * Add alternatives to the menu
              */
+            /*
             menu.addIntentOptions(
                 Menu.CATEGORY_ALTERNATIVE,  // Add the Intents as options in the alternatives group.
                 Menu.NONE,                  // A unique item ID is not required.
@@ -289,7 +240,9 @@ public class NotesList extends ListActivity {
                 items                       // The menu items generated from the specifics-to-
                                             // Intents mapping
             );
+            */
                 // If the Edit menu item exists, adds shortcuts for it.
+              /*
                 if (items[0] != null) {
 
                     // Sets the Edit menu item shortcut to numeric "1", letter "e"
@@ -301,9 +254,24 @@ public class NotesList extends ListActivity {
             }
 
         // Displays the menu
+        /*
         return true;
     }
-
+    */
+    
+    private static final int ADD_NOTE_REQUEST = 0;
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    	Log.d(TAG, "NotesList onActivityResult");
+    	if(requestCode == ADD_NOTE_REQUEST){
+    		if(resultCode == RESULT_OK){
+    			Log.d(TAG, "note ready to insert");
+    			titleList.add(data.getExtras().getString("title"));
+    		}
+    	}
+    }
+    
     /**
      * This method is called when the user selects an option from the menu, but no item
      * in the list is selected. If the option was INSERT, then a new Intent is sent out with action
@@ -320,12 +288,12 @@ public class NotesList extends ListActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.menu_add:
-          /*
-           * Launches a new Activity using an Intent. The intent filter for the Activity
-           * has to have action ACTION_INSERT. No category is set, so DEFAULT is assumed.
-           * In effect, this starts the NoteEditor Activity in NotePad.
-           */
-           startActivity(new Intent(Intent.ACTION_INSERT, getIntent().getData()));
+        	Log.d(TAG, "menu add clicked");
+           startActivityForResult(
+        		new Intent(Intent.ACTION_INSERT)
+        			.setComponent(new ComponentName(this, NoteEditor.class)),
+        		ADD_NOTE_REQUEST
+        	);
            return true;
         case R.id.menu_paste:
           /*
@@ -333,8 +301,9 @@ public class NotesList extends ListActivity {
            * has to have action ACTION_PASTE. No category is set, so DEFAULT is assumed.
            * In effect, this starts the NoteEditor Activity in NotePad.
            */
-          startActivity(new Intent(Intent.ACTION_PASTE, getIntent().getData()));
-          return true;
+          //startActivity(new Intent(Intent.ACTION_PASTE, getIntent().getData()));
+        	startActivity(new Intent(Intent.ACTION_PASTE));
+        	return true;
         case R.id.menu_logout:
         	final Context ctx = this;
         	me.logoutAsync(new UserLogoutCallback() {
@@ -395,21 +364,15 @@ public class NotesList extends ListActivity {
          * the adapter associated all of the data for a note with its list item. As a result,
          * getItem() returns that data as a Cursor.
          */
-        Cursor cursor = (Cursor) getListAdapter().getItem(info.position);
+        String title = (String) getListAdapter().getItem(info.position);
 
-        // If the cursor is empty, then for some reason the adapter can't get the data from the
-        // provider, so returns null to the caller.
-        if (cursor == null) {
-            // For some reason the requested item isn't available, do nothing
-            return;
-        }
 
         // Inflate menu from XML resource
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.list_context_menu, menu);
 
         // Sets the menu header to be the title of the selected note.
-        menu.setHeaderTitle(cursor.getString(COLUMN_INDEX_TITLE));
+        menu.setHeaderTitle(title);
 
         // Append to the
         // menu items for any other activities that can do stuff with it
@@ -461,8 +424,10 @@ public class NotesList extends ListActivity {
             // Triggers default processing of the menu item.
             return false;
         }
+        String title = titleList.get(info.position);
+        Log.d(TAG, "item id=" + info.id + " position=" + info.position + " content="+titleList.get(info.position));
         // Appends the selected note's ID to the URI sent with the incoming Intent.
-        Uri noteUri = ContentUris.withAppendedId(getIntent().getData(), info.id);
+        //Uri noteUri = ContentUris.withAppendedId(getIntent().getData(), info.id);
 
         /*
          * Gets the menu item's ID and compares it to known actions.
@@ -470,10 +435,14 @@ public class NotesList extends ListActivity {
         switch (item.getItemId()) {
         case R.id.context_open:
             // Launch activity to view/edit the currently selected item
-            startActivity(new Intent(Intent.ACTION_EDIT, noteUri));
+        	startActivity(
+            		new Intent(Intent.ACTION_INSERT)
+            			.setComponent(new ComponentName(this, NoteEditor.class))
+            	);
             return true;
-
+            /*
         case R.id.context_copy:
+        	
             // Gets a handle to the clipboard service.
             ClipboardManager clipboard = (ClipboardManager)
                     getSystemService(Context.CLIPBOARD_SERVICE);
@@ -484,48 +453,28 @@ public class NotesList extends ListActivity {
                     "Note",                             // label for the clip
                     noteUri)                            // the URI
             );
-  
+            
             // Returns to the caller and skips further processing.
             return true;
-
+             	*/
         case R.id.context_delete:
-        	Cursor noteCur = null;
-        	try{
-	        	noteCur = getContentResolver().query(noteUri, 
-	            		new String[]{CloudNotebook.Notes.COLUMN_NAME_TITLE}, 
-	            		null, null, null);
-	        	
-	        	if(noteCur.moveToFirst()){
-	        		String title = noteCur.getString(0);
-	        		
-	        		com.baidu.mcs.File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
-	                		title, 
-	                		new FileDeleteCallback(){
+        	final int pos = info.position;
+        	File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
+            		title, 
+            		new FileDeleteCallback(){
 	                	public void onSuccess(String requestId){
 	                		Log.d(TAG, "FileDeleteCallback.onSuccess");
+	                		titleList.remove(pos);
+	                		((ArrayAdapter<String>)
+	                		        NotesList.this.getListAdapter()).notifyDataSetChanged();
 	                	}
 	                	
 	                	public void onFailure(Throwable paramThrowable){
 	                		Log.d(TAG, "FileDeleteCallback.onFailure");
 	                	}
-	                });
-	        	}
-        	}finally{
-        		noteCur.close();
-        	}
-        	
-            // Deletes the note from the provider by passing in a URI in note ID format.
-            // Please see the introductory note about performing provider operations on the
-            // UI thread.
-            getContentResolver().delete(
-                noteUri,  // The URI of the provider
-                null,     // No where clause is needed, since only a single note ID is being
-                          // passed in.
-                null      // No where clause is used, so no where arguments are needed.
-            );
-            
-            Log.d(TAG, "local note deleted");
-            // Returns to the caller and skips further processing.
+            	}
+    		);
+        	Log.d(TAG, "local note deleted");
             return true;
         default:
             return super.onContextItemSelected(item);
@@ -545,9 +494,12 @@ public class NotesList extends ListActivity {
      */
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
-
+    	
+    	String title = titleList.get(Long.valueOf(id).intValue());
+    	Log.d(TAG, "id="+id+" title=" + title);
+    	
         // Constructs a new URI from the incoming URI and the row ID
-        Uri uri = ContentUris.withAppendedId(getIntent().getData(), id);
+        //Uri uri = ContentUris.withAppendedId(getIntent().getData(), id);
 
         // Gets the action from the incoming Intent
         String action = getIntent().getAction();
@@ -557,12 +509,17 @@ public class NotesList extends ListActivity {
 
             // Sets the result to return to the component that called this Activity. The
             // result contains the new URI
-            setResult(RESULT_OK, new Intent().setData(uri));
+            //setResult(RESULT_OK, new Intent().setData(uri));
+        	setResult(RESULT_OK, new Intent().putExtra("title", title));
         } else {
 
             // Sends out an Intent to start an Activity that can handle ACTION_EDIT. The
             // Intent's data is the note ID URI. The effect is to call NoteEdit.
-            startActivity(new Intent(Intent.ACTION_EDIT, uri));
+            //startActivity(new Intent(Intent.ACTION_EDIT, uri);
+        	Intent i = new Intent(Intent.ACTION_EDIT)
+        		.setComponent(new ComponentName(this, NoteEditor.class))
+        		.putExtra("title", title);
+            startActivity(i);
         }
     }
 }

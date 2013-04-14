@@ -43,7 +43,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.CalendarView.OnDateChangeListener;
 import android.widget.ListView;
 
 import com.baidu.mcs.File;
@@ -341,8 +340,13 @@ public class NotesList extends ListActivity {
 	                	public void onSuccess(String requestId){
 	                		Log.d(TAG, "FileDeleteCallback.onSuccess");
 	                		titleList.remove(pos);
-	                		((ArrayAdapter<String>)
-	                		        NotesList.this.getListAdapter()).notifyDataSetChanged();
+	                		NotesList.this.setListAdapter(
+                				new ArrayAdapter<String>(
+                						NotesList.this,
+                						R.layout.noteslist_item, 
+                						titleList.toArray(new String[0])
+                				)
+	                		);
 	                	}
 	                	
 	                	public void onFailure(Throwable paramThrowable){

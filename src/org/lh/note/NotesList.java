@@ -175,6 +175,13 @@ public class NotesList extends ListActivity {
 	    		if(resultCode == RESULT_OK){
 	    			Log.d(TAG, "ready to insert note");
 	    			titleList.add(data.getExtras().getString("title"));
+	    			setListAdapter(
+							new ArrayAdapter<String>(
+									NotesList.this,
+									R.layout.noteslist_item, 
+									titleList.toArray(new String[0])
+							)
+						);
 	    		}
 	    	break;
 	    	case EDIT_TITLE_REQUEST:

@@ -17,12 +17,10 @@
 package org.lh.note.editor;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import org.lh.note.R;
 import org.lh.note.data.CloudNotebook;
+import org.lh.note.util.DownloadNoteTask;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -31,7 +29,6 @@ import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -42,7 +39,6 @@ import android.widget.EditText;
 
 import com.baidu.mcs.File;
 import com.baidu.mcs.callback.FileDeleteCallback;
-import com.baidu.mcs.callback.FileDownloadCallback;
 import com.baidu.mcs.callback.FileUploadCallback;
 
 public class NoteEditor extends Activity {
@@ -56,8 +52,8 @@ public class NoteEditor extends Activity {
 
     // This Activity can be started by more than one action. Each action is represented
     // as a "state" constant
-    private static final int STATE_EDIT = 0; //editing a note
-    private static final int STATE_INSERT = 1;//creating a new note
+    private static final int STATE_INSERT = 0;//creating a new note
+    private static final int STATE_EDIT = 1; //editing a note
 
     // Global mutable variables
     private int mState;;
@@ -65,7 +61,6 @@ public class NoteEditor extends Activity {
     private EditText mText;
     private String mOriginalContent;
     private int mPosition = -1;
-    private boolean isSynced = false;
     
     private String escapedLineBreak(String src){
     	return src.replaceAll("\n", "\\\\n");
@@ -171,22 +166,30 @@ public class NoteEditor extends Activity {
             setTitle(text);
             
             Log.d(TAG, "download file " + mTitle);
-            File.downloadAsync(
-            		CloudNotebook.CLOUD_BUCKET, 
-            		mTitle, 
-            		new FileDownloadCallback() {
-            			@Override
-        				public void onSuccess(InputStream arg0) {
-        					new DownloadNoteTask(NoteEditor.this).execute(arg0);
-        				}
-        				
-        				@Override
-        				public void onFailure(Throwable arg0) {
-        					setTitle(getText(R.string.error_title));
-        		            mText.setText(getText(R.string.error_message));
-        				}
-            		}
-                );
+            DownloadNoteTask t = new DownloadNoteTask(mTitle, new DownloadNoteTask.Callback() {
+				
+				@Override
+				public void onSuccess(String note) {
+					Log.d(TAG, "downloaded note: " + note);
+					if(note != null){
+						mText.setTextKeepState(note);
+						// Stores the original note text, to allow the user to revert changes.
+				        if (mOriginalContent == null) {
+				        	mOriginalContent = note;
+				        }
+					}else{
+						setTitle(getText(R.string.error_title));
+						mText.setText(getText(R.string.error_message));
+					}
+				}
+				
+				@Override
+				public void onFail(Throwable t) {
+					setTitle(getText(R.string.error_title));
+		            mText.setText(getText(R.string.error_message));
+				}
+			});
+            t.run();
             
             String formatedTitle = String.format(getResources().getString(R.string.title_edit), mTitle);
             setTitle(formatedTitle);
@@ -195,59 +198,6 @@ public class NoteEditor extends Activity {
             setTitle(getText(R.string.title_create));
         }
         mText.setText(mOriginalContent);
-    }
-    
-    private static class DownloadNoteTask extends AsyncTask<InputStream, Void, String>{
-    	
-    	private NoteEditor mEditor = null;
-    	
-    	public DownloadNoteTask(NoteEditor editor){
-    		mEditor = editor;
-    	}
-    	
-    	@Override
-		protected String doInBackground(InputStream... arg) {
-			
-			InputStreamReader in = new InputStreamReader(arg[0]);
-			StringBuilder sb = new StringBuilder();
-			char[] buf = new char[2048];
-			try{
-				int c = in.read(buf, 0, 2048);
-				while(c != -1){
-					sb.append(buf, 0, c);
-					c = in.read(buf, 0, 2048);    					
-				}
-				
-				return sb.toString();
-				
-			}catch(IOException e){
-				Log.e(TAG, e.getCause().getMessage());
-			}finally{
-				try{
-					in.close();
-				}catch(IOException e){
-					Log.e(TAG, e.getCause().getMessage());
-				}
-			}
-			return null;
-		}
-		
-		@Override
-		protected void onPostExecute(String note) {
-			super.onPostExecute(note);
-			Log.d(TAG, "downloaded note: " + note);
-			mEditor.isSynced = true;
-			if(note != null){
-				mEditor.mText.setTextKeepState(note);
-				// Stores the original note text, to allow the user to revert changes.
-		        if (mEditor.mOriginalContent == null) {
-		        	mEditor.mOriginalContent = note;
-		        }
-			}else{
-				mEditor.setTitle(mEditor.getText(R.string.error_title));
-				mEditor.mText.setText(mEditor.getText(R.string.error_message));
-			}
-		}
     }
     
     @Override
@@ -267,8 +217,9 @@ public class NoteEditor extends Activity {
         mOriginalContent = text;
         
         if (isFinishing() && (length == 0)) {
-            //setResult(RESULT_CANCELED);
-            deleteNote(false);
+        	if(mState == STATE_EDIT){
+        		deleteNote();
+        	}
         } else if (mState == STATE_EDIT) {
             // Creates a map to contain the new values for the columns
             updateNote(text, null);
@@ -316,41 +267,45 @@ public class NoteEditor extends Activity {
         switch (item.getItemId()) {
         case R.id.menu_save:
         	Log.d(TAG, "option_menu save clicked");
-            if (mState == STATE_INSERT) {
-
-                // If no title was provided as an argument, create one from the note text.
-                String text = mText.getText().toString();
-      
-                    // Get the note's length
-                    int length = text.length();
-
-                    // Sets the title by getting a substring of the text that is 31 characters long
-                    // or the number of characters in the note plus one, whichever is smaller.
-                    String title = text.substring(0, Math.min(30, length));
-      
-                    // If the resulting length is more than 30 characters, chops off any
-                    // trailing spaces
-                    if (length > 30) {
-                        int lastSpace = title.lastIndexOf(' ');
-                        if (lastSpace > 0) {
-                            title = title.substring(0, lastSpace);
-                        }
-                    }
-                mTitle = title;
-            }
-            setResult(
-    				RESULT_OK, 
-    				new Intent()
-    					.putExtra("title", mTitle)
-    					.putExtra("pos", mPosition)
-    		);
-            finish();
-            break;
+        	String text = mText.getText().toString();
+        	if(! text.isEmpty()){//if text is empty, fall back to the case as R.id.menu_delete
+        		
+	            if (mState == STATE_INSERT) {
+	            	// Get the note's length
+	                int length = text.length();
+	
+	                // Sets the title by getting a substring of the text that is 31 characters long
+	                // or the number of characters in the note plus one, whichever is smaller.
+	                String title = text.substring(0, Math.min(30, length));
+	  
+	                // If the resulting length is more than 30 characters, chops off any
+	                // trailing spaces
+	                if (length > 30) {
+	                    int lastSpace = title.lastIndexOf(' ');
+	                    if (lastSpace > 0) {
+	                        title = title.substring(0, lastSpace);
+	                    }
+	                }
+	                mTitle = title;
+	            }
+	            setResult(
+	    				RESULT_OK, 
+	    				new Intent()
+	    					.putExtra("title", mTitle)
+	    					.putExtra("pos", mPosition)
+	    		);
+	            finish();
+	            break;
+        	}
         case R.id.menu_delete:
         	Log.d(TAG, "option_menu delete clicked");
         	mText.setText("");
             //deleteNote(true);
-        	setResult(RESULT_OK, new Intent().putExtra("pos", mPosition).putExtra("delete", true));
+        	if(mState == STATE_EDIT){
+        		setResult(RESULT_OK, new Intent().putExtra("pos", mPosition).putExtra("delete", true));
+        	}else if(mState == STATE_INSERT){
+        		setResult(RESULT_CANCELED);
+        	}
             finish();
             break;
             /*
@@ -416,26 +371,11 @@ public class NoteEditor extends Activity {
         		new FileUploadCallback(){
         	
 		        	public void onSuccess(String requestId){
-		        		Log.d(TAG, "note["+ mTitle +"] saved");
-		        		isSynced = true;
-		        		/*
-		        		setResult(
-		        				RESULT_OK, 
-		        				new Intent()
-		        					.putExtra("title", mTitle)
-		        					.putExtra("pos", mPosition)
-		        		);
-		        		finish();
-		        		*/
+		        		Log.d(TAG, "note["+ mTitle +"] saved");		        		
 		        	}
 		        	
 		        	public void onFailure(Throwable paramThrowable){
 		        		Log.d(TAG, paramThrowable.getMessage());
-		        		isSynced = false;
-		        		/*
-		        		setResult(RESULT_CANCELED, null);
-		        		finish();
-		        		*/
 		        	}
         		}
         	);
@@ -445,28 +385,16 @@ public class NoteEditor extends Activity {
     /**
      * Take care of deleting a note.  Simply deletes the entry.
      */
-    private final void deleteNote(boolean closeActivity) {
-    	final boolean toClose = closeActivity;
+    private final void deleteNote() {
     	File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
         		mTitle, 
         		new FileDeleteCallback(){
         	public void onSuccess(String requestId){
         		Log.d(TAG, "FileDeleteCallback.onSuccess");
-        		isSynced = true;
-        		/*
-        		if(toClose){
-        			setResult(RESULT_OK, new Intent().putExtra("pos", mPosition).putExtra("delete", true));
-        			finish();
-        		}*/
         	}
         	
         	public void onFailure(Throwable paramThrowable){
         		Log.d(TAG, "FileDeleteCallback.onFailure");
-        		isSynced = false;
-        		/*
-        		if(toClose){
-        			finish();
-        		}*/
         	}
         });
     }

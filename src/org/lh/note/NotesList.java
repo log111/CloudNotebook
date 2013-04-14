@@ -23,7 +23,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.lh.note.data.CloudNotebook;
-import org.lh.note.data.NoteProvider;
 import org.lh.note.editor.NoteEditor;
 import org.lh.note.editor.TitleEditor;
 import org.lh.note.util.RenameNoteTask;

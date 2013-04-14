@@ -41,10 +41,8 @@
     <string name="menu_save">Save</string>
     <string name="menu_delete">Delete</string>
     <string name="menu_open">Open</string>
-    <string name="menu_revert">Revert changes</string>
-    <string name="menu_copy">Copy</string>
-    <string name="menu_paste">Paste</string>
     <string name="menu_logout">Logout</string>
+    <string name="menu_edit_title">Edit title</string>
     
 	<!-- Strings related to editor -->
     <string name="title_edit_title">Note title:</string>

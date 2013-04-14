@@ -69,6 +69,7 @@ public class NotesList extends ListActivity {
 
     private static final int ADD_NOTE_REQUEST = 0;
     private static final int EDIT_TITLE_REQUEST = 1;
+    private static final int EDIT_NOTE_REQUEST = 2;
     
     private User me = null;
     private List<String> titleList = null;
@@ -173,7 +174,7 @@ public class NotesList extends ListActivity {
     	switch(requestCode){
 	    	case ADD_NOTE_REQUEST:
 	    		if(resultCode == RESULT_OK){
-	    			Log.d(TAG, "ready to insert note");
+	    			Log.d(TAG, "new note added");
 	    			titleList.add(data.getExtras().getString("title"));
 	    			setListAdapter(
 							new ArrayAdapter<String>(
@@ -184,6 +185,26 @@ public class NotesList extends ListActivity {
 						);
 	    		}
 	    	break;
+	    	case EDIT_NOTE_REQUEST:
+	    		if(resultCode == RESULT_OK){
+	    			Log.d(TAG, "note edited");
+	    			boolean toRemoved = data.getBooleanExtra("delete", false);
+	    			int pos = data.getIntExtra("pos", 0);
+	    			if(! toRemoved){    			
+		    			String title = data.getStringExtra("title");
+		    			titleList.set(pos, title);
+	    			}else{
+	    				titleList.remove(pos);
+	    			}
+	    			setListAdapter(
+							new ArrayAdapter<String>(
+									NotesList.this,
+									R.layout.noteslist_item, 
+									titleList.toArray(new String[0])
+							)
+						);
+	    		}
+	    		break;
 	    	case EDIT_TITLE_REQUEST:
 	    		if(resultCode == RESULT_OK){
 	    			Log.d(TAG, "title changed");
@@ -213,9 +234,9 @@ public class NotesList extends ListActivity {
 						}
 					});
 	    			
-	    			t.run();
-	    			
+	    			t.run();	    			
 	    		}
+	    		break;
     	}
     }
     
@@ -333,10 +354,13 @@ public class NotesList extends ListActivity {
 
         switch (item.getItemId()) {
         case R.id.context_open:
-            // Launch activity to view/edit the currently selected item
-        	startActivity(
-            		new Intent(Intent.ACTION_INSERT)
+        	Log.d(TAG, "edit note at " + info.position);
+        	startActivityForResult(
+            		new Intent(Intent.ACTION_EDIT)
             			.setComponent(new ComponentName(this, NoteEditor.class))
+            			.putExtra("pos", info.position)
+            			.putExtra("title", title),
+            		EDIT_NOTE_REQUEST
             	);
             return true;
         case R.id.context_delete:
@@ -410,8 +434,10 @@ public class NotesList extends ListActivity {
             //startActivity(new Intent(Intent.ACTION_EDIT, uri);
         	Intent i = new Intent(Intent.ACTION_EDIT)
         		.setComponent(new ComponentName(this, NoteEditor.class))
+        		.putExtra("pos", position)
         		.putExtra("title", title);
-            startActivity(i);
+        	Log.d(TAG, "edit note at " + position);
+            startActivityForResult(i, EDIT_NOTE_REQUEST);
         }
     }
 }

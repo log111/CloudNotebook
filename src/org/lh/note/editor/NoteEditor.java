@@ -64,6 +64,8 @@ public class NoteEditor extends Activity {
     private String mTitle;
     private EditText mText;
     private String mOriginalContent;
+    private int mPosition = -1;
+    private boolean isSynced = false;
     
     /**
      * Defines a custom EditText View that draws lines between each line of text that is displayed.
@@ -127,13 +129,14 @@ public class NoteEditor extends Activity {
         super.onCreate(savedInstanceState);
 
         final Intent intent = getIntent();
-        final String action = intent.getAction();
+        mPosition = intent.getIntExtra("pos", 0);
         
+        final String action = intent.getAction();
         if (Intent.ACTION_EDIT.equals(action)) {
 
             // Sets the Activity state to EDIT, and gets the URI for the data to be edited.
             mState = STATE_EDIT;
-            mTitle = intent.getExtras().getString("title");
+            mTitle = intent.getStringExtra("title");
         } else if (Intent.ACTION_INSERT.equals(action)
                 || Intent.ACTION_PASTE.equals(action)) {
             mState = STATE_INSERT;
@@ -154,14 +157,6 @@ public class NoteEditor extends Activity {
         }
     }
     
-    /**
-     * This method is called when the Activity is about to come to the foreground. This happens
-     * when the Activity comes to the top of the task stack, OR when it is first starting.
-     *
-     * Moves to the first note in the list, sets an appropriate title for the action chosen by
-     * the user, puts the note contents into the TextView, and saves the original text as a
-     * backup.
-     */
     @Override
     protected void onResume() {
         super.onResume();
@@ -192,6 +187,9 @@ public class NoteEditor extends Activity {
         } else if (mState == STATE_INSERT) {
             setTitle(getText(R.string.title_create));
         }
+        String formatedTitle = String.format(getResources().getString(R.string.title_edit), mTitle);
+        setTitle(formatedTitle);
+        mText.setText(mOriginalContent);
     }
     
     private static class DownloadNoteTask extends AsyncTask<InputStream, Void, String>{
@@ -233,6 +231,7 @@ public class NoteEditor extends Activity {
 		protected void onPostExecute(String note) {
 			super.onPostExecute(note);
 			Log.d(TAG, "downloaded note: " + note);
+			mEditor.isSynced = true;
 			if(note != null){
 				mEditor.mText.setTextKeepState(note);
 				// Stores the original note text, to allow the user to revert changes.
@@ -248,23 +247,23 @@ public class NoteEditor extends Activity {
     
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        // Save away the original text, so we still have it if the activity
-        // needs to be killed while paused.
         outState.putString(ORIGINAL_CONTENT, mOriginalContent);
     }
     
     @Override
     protected void onPause() {
     	Log.d(TAG, "onPause");
+    	
         super.onPause();
 
             // Get the current note text.
             String text = mText.getText().toString();
             int length = text.length();
-
+            mOriginalContent = text;
+            
             if (isFinishing() && (length == 0)) {
                 setResult(RESULT_CANCELED);
-                deleteNote();
+                deleteNote(false);
             } else if (mState == STATE_EDIT) {
                 // Creates a map to contain the new values for the columns
                 updateNote(text, null);
@@ -311,28 +310,37 @@ public class NoteEditor extends Activity {
         // Handle all of the possible menu actions.
         switch (item.getItemId()) {
         case R.id.menu_save:
-        	Log.d(TAG, "menu save clicked");
+        	Log.d(TAG, "option_menu save clicked");
             String text = mText.getText().toString();
             updateNote(text, null);
             break;
         case R.id.menu_delete:
-            deleteNote();
-            finish();
+        	Log.d(TAG, "option_menu delete clicked");
+            deleteNote(true);
+            //finish();
             break;
+            /*
         case R.id.menu_edit_title:
-        	Intent i = new Intent().setComponent(new ComponentName(this, TitleEditor.class));
-        	startActivityForResult(i, EDIT_TITLE_REQUEST);
+        	Log.d(TAG, "option_menu edit_title clicked");
+        	startActivityForResult(new Intent()
+    			.setComponent(new ComponentName(this, TitleEditor.class))
+    			.putExtra("pos", mPosition), 
+    		EDIT_TITLE_REQUEST);
         	break;
+        	*/
         }
         return super.onOptionsItemSelected(item);
     }
     
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    	Log.d(TAG, "onActivityResult");
     	if(requestCode == EDIT_TITLE_REQUEST){
     		if(resultCode == RESULT_OK){
-    			String title = data.getExtras().getString("title");
+    			String title = data.getStringExtra("title");
     			Log.d(TAG, "get title from titleEditor: " + title);
+    			this.mTitle = title;
+    			
     		}
     	}
     }
@@ -376,12 +384,19 @@ public class NoteEditor extends Activity {
         	
 		        	public void onSuccess(String requestId){
 		        		Log.d(TAG, "note["+ mTitle +"] saved");
-		        		setResult(RESULT_OK, new Intent().putExtra("title", mTitle));
+		        		isSynced = true;
+		        		setResult(
+		        				RESULT_OK, 
+		        				new Intent()
+		        					.putExtra("title", mTitle)
+		        					.putExtra("pos", mPosition)
+		        		);
 		        		finish();
 		        	}
 		        	
 		        	public void onFailure(Throwable paramThrowable){
 		        		Log.d(TAG, paramThrowable.getMessage());
+		        		isSynced = false;
 		        		setResult(RESULT_CANCELED, null);
 		        		finish();
 		        	}
@@ -393,16 +408,26 @@ public class NoteEditor extends Activity {
     /**
      * Take care of deleting a note.  Simply deletes the entry.
      */
-    private final void deleteNote() {
+    private final void deleteNote(boolean closeActivity) {
+    	final boolean toClose = closeActivity;
     	File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
         		mTitle, 
         		new FileDeleteCallback(){
         	public void onSuccess(String requestId){
         		Log.d(TAG, "FileDeleteCallback.onSuccess");
+        		isSynced = true;
+        		if(toClose){
+        			setResult(RESULT_OK, new Intent().putExtra("pos", mPosition).putExtra("delete", true));
+        			finish();
+        		}
         	}
         	
         	public void onFailure(Throwable paramThrowable){
         		Log.d(TAG, "FileDeleteCallback.onFailure");
+        		isSynced = false;
+        		if(toClose){
+        			finish();
+        		}
         	}
         });
     }

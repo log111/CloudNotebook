@@ -21,6 +21,7 @@ import org.lh.note.R;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
@@ -34,6 +35,7 @@ import android.widget.EditText;
  * or {@link android.os.AsyncTask} object to perform operations asynchronously on a separate thread.
  */
 public class TitleEditor extends Activity {
+	private static final String TAG = "TitleEditor";
 
     // An EditText object for preserving the edited title.
     private EditText mText;
@@ -46,6 +48,8 @@ public class TitleEditor extends Activity {
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+    	Log.d(TAG, "onCreate");
+    	
         super.onCreate(savedInstanceState);
         setContentView(R.layout.title_editor);
         mText = (EditText) this.findViewById(R.id.title);
@@ -54,7 +58,7 @@ public class TitleEditor extends Activity {
             originalTitle = savedInstanceState.getString("title");
         }
         
-        itemPos = getIntent().getExtras().getInt("pos");
+        itemPos = getIntent().getIntExtra("pos", 0);
     }
 
     @Override
@@ -96,6 +100,8 @@ public class TitleEditor extends Activity {
     }
 
     public void onClickOk(View v) {
+    	Log.d(TAG, "onClick");
+    	
     	setResult(RESULT_OK, new Intent()
     		.putExtra("title", mText.getText().toString())
     		.putExtra("pos", itemPos)

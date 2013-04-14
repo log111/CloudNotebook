@@ -261,21 +261,21 @@ public class NoteEditor extends Activity {
     	
         super.onPause();
 
-            // Get the current note text.
-            String text = mText.getText().toString();
-            int length = text.length();
-            mOriginalContent = text;
-            
-            if (isFinishing() && (length == 0)) {
-                setResult(RESULT_CANCELED);
-                deleteNote(false);
-            } else if (mState == STATE_EDIT) {
-                // Creates a map to contain the new values for the columns
-                updateNote(text, null);
-            } else if (mState == STATE_INSERT) {
-                updateNote(text, text);
-                mState = STATE_EDIT;
-          }
+        // Get the current note text.
+        String text = mText.getText().toString();
+        int length = text.length();
+        mOriginalContent = text;
+        
+        if (isFinishing() && (length == 0)) {
+            //setResult(RESULT_CANCELED);
+            deleteNote(false);
+        } else if (mState == STATE_EDIT) {
+            // Creates a map to contain the new values for the columns
+            updateNote(text, null);
+        } else if (mState == STATE_INSERT) {
+            updateNote(text, text);
+            mState = STATE_EDIT;
+        }
     }
 
     @Override
@@ -316,13 +316,42 @@ public class NoteEditor extends Activity {
         switch (item.getItemId()) {
         case R.id.menu_save:
         	Log.d(TAG, "option_menu save clicked");
-            String text = mText.getText().toString();
-            updateNote(text, null);
+            if (mState == STATE_INSERT) {
+
+                // If no title was provided as an argument, create one from the note text.
+                String text = mText.getText().toString();
+      
+                    // Get the note's length
+                    int length = text.length();
+
+                    // Sets the title by getting a substring of the text that is 31 characters long
+                    // or the number of characters in the note plus one, whichever is smaller.
+                    String title = text.substring(0, Math.min(30, length));
+      
+                    // If the resulting length is more than 30 characters, chops off any
+                    // trailing spaces
+                    if (length > 30) {
+                        int lastSpace = title.lastIndexOf(' ');
+                        if (lastSpace > 0) {
+                            title = title.substring(0, lastSpace);
+                        }
+                    }
+                mTitle = title;
+            }
+            setResult(
+    				RESULT_OK, 
+    				new Intent()
+    					.putExtra("title", mTitle)
+    					.putExtra("pos", mPosition)
+    		);
+            finish();
             break;
         case R.id.menu_delete:
         	Log.d(TAG, "option_menu delete clicked");
-            deleteNote(true);
-            //finish();
+        	mText.setText("");
+            //deleteNote(true);
+        	setResult(RESULT_OK, new Intent().putExtra("pos", mPosition).putExtra("delete", true));
+            finish();
             break;
             /*
         case R.id.menu_edit_title:
@@ -389,6 +418,7 @@ public class NoteEditor extends Activity {
 		        	public void onSuccess(String requestId){
 		        		Log.d(TAG, "note["+ mTitle +"] saved");
 		        		isSynced = true;
+		        		/*
 		        		setResult(
 		        				RESULT_OK, 
 		        				new Intent()
@@ -396,13 +426,16 @@ public class NoteEditor extends Activity {
 		        					.putExtra("pos", mPosition)
 		        		);
 		        		finish();
+		        		*/
 		        	}
 		        	
 		        	public void onFailure(Throwable paramThrowable){
 		        		Log.d(TAG, paramThrowable.getMessage());
 		        		isSynced = false;
+		        		/*
 		        		setResult(RESULT_CANCELED, null);
 		        		finish();
+		        		*/
 		        	}
         		}
         	);
@@ -420,18 +453,20 @@ public class NoteEditor extends Activity {
         	public void onSuccess(String requestId){
         		Log.d(TAG, "FileDeleteCallback.onSuccess");
         		isSynced = true;
+        		/*
         		if(toClose){
         			setResult(RESULT_OK, new Intent().putExtra("pos", mPosition).putExtra("delete", true));
         			finish();
-        		}
+        		}*/
         	}
         	
         	public void onFailure(Throwable paramThrowable){
         		Log.d(TAG, "FileDeleteCallback.onFailure");
         		isSynced = false;
+        		/*
         		if(toClose){
         			finish();
-        		}
+        		}*/
         	}
         });
     }

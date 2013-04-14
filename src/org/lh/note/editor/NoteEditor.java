@@ -67,6 +67,10 @@ public class NoteEditor extends Activity {
     private int mPosition = -1;
     private boolean isSynced = false;
     
+    private String escapedLineBreak(String src){
+    	return src.replaceAll("\n", "\\\\n");
+    }
+    
     /**
      * Defines a custom EditText View that draws lines between each line of text that is displayed.
      */
@@ -183,12 +187,13 @@ public class NoteEditor extends Activity {
         				}
             		}
                 );
+            
+            String formatedTitle = String.format(getResources().getString(R.string.title_edit), mTitle);
+            setTitle(formatedTitle);
         // Sets the title to "create" for inserts
         } else if (mState == STATE_INSERT) {
             setTitle(getText(R.string.title_create));
         }
-        String formatedTitle = String.format(getResources().getString(R.string.title_edit), mTitle);
-        setTitle(formatedTitle);
         mText.setText(mOriginalContent);
     }
     
@@ -339,8 +344,7 @@ public class NoteEditor extends Activity {
     		if(resultCode == RESULT_OK){
     			String title = data.getStringExtra("title");
     			Log.d(TAG, "get title from titleEditor: " + title);
-    			this.mTitle = title;
-    			
+    			this.mTitle = title;    			
     		}
     	}
     }
@@ -379,7 +383,7 @@ public class NoteEditor extends Activity {
         File.uploadAsync(
         		CloudNotebook.CLOUD_BUCKET, 
         		mTitle, 
-        		new ByteArrayInputStream(text.getBytes()), 
+        		new ByteArrayInputStream(escapedLineBreak(text).getBytes()), 
         		new FileUploadCallback(){
         	
 		        	public void onSuccess(String requestId){

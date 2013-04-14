@@ -39,12 +39,10 @@ public class SignupActivity extends Activity {
 	 */
 	// Values for email and password at the time of the login attempt.
 	private String mUsername;
-	private String mEmail;
 	private String mPassword;
 
 	// UI references.
 	private EditText mUserView;
-	private EditText mEmailView;
 	private EditText mPasswordView;
 	private View mLoginFormView;
 	private View mLoginStatusView;
@@ -59,10 +57,6 @@ public class SignupActivity extends Activity {
 		// Set up the login form.
 		mUserView = (EditText) findViewById(R.id.username);
 		
-		mEmail = getIntent().getStringExtra(EXTRA_EMAIL);
-		mEmailView = (EditText) findViewById(R.id.email);
-		mEmailView.setText(mEmail);
-
 		mPasswordView = (EditText) findViewById(R.id.password);
 		mPasswordView
 				.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -104,12 +98,10 @@ public class SignupActivity extends Activity {
 	 */
 	public void attemptSignup() {
 		// Reset errors.
-		mEmailView.setError(null);
 		mPasswordView.setError(null);
 
 		// Store values at the time of the login attempt.
 		mUsername = mUserView.getText().toString();
-		mEmail = mEmailView.getText().toString();
 		mPassword = mPasswordView.getText().toString();
 
 		boolean cancel = false;
@@ -123,17 +115,6 @@ public class SignupActivity extends Activity {
 		} else if (mPassword.length() < 4) {
 			mPasswordView.setError(getString(R.string.error_invalid_password));
 			focusView = mPasswordView;
-			cancel = true;
-		}
-
-		// Check for a valid email address.
-		if (TextUtils.isEmpty(mEmail)) {
-			mEmailView.setError(getString(R.string.error_field_required));
-			focusView = mEmailView;
-			cancel = true;
-		} else if (!mEmail.contains("@")) {
-			mEmailView.setError(getString(R.string.error_invalid_email));
-			focusView = mEmailView;
 			cancel = true;
 		}
 

@@ -69,7 +69,7 @@
         </activity>
 
         <activity android:name=".editor.NoteEditor"
-            android:screenOrientation="sensor"
+            android:screenOrientation="portrait"
             android:configChanges="keyboardHidden|orientation"
         >
             <!-- This filter says that we can view or edit the data of

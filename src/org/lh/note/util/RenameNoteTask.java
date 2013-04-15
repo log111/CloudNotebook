@@ -4,9 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-
 
 import android.os.AsyncTask;
 import android.util.Log;
@@ -19,24 +16,18 @@ import com.baidu.mcs.callback.FileUploadCallback;
 public class RenameNoteTask {
 	private static String TAG = "RenameNoteTask";
 	
-	private String mOldUtf = null;
-	private String mNewUtf = null;
+	private String mOldTitle = null;
 	private String mNewTitle = null;
 	private Callback mCB = null;
 	
 	public RenameNoteTask(String oldTitle, String newTitle, Callback cb){
-		try{
-			mOldUtf = URLEncoder.encode(oldTitle, "UTF8");
-			mNewTitle = newTitle;
-			mNewUtf = URLEncoder.encode(newTitle, "UTF8");
-			mCB = cb;
-		}catch(UnsupportedEncodingException e){
-			Log.e(TAG, e.getCause().getMessage());
-		}
+		mOldTitle = oldTitle;
+		mNewTitle = newTitle;
+		mCB = cb;
 	}
 	
 	public void run(){
-		File.downloadAsync(Constants.CLOUD_BUCKET, mOldUtf, new FileDownloadCallback() {
+		File.downloadAsync(Constants.CLOUD_BUCKET, mOldTitle, new FileDownloadCallback() {
 			
 			@Override
 			public void onSuccess(InputStream arg0) {
@@ -89,7 +80,7 @@ public class RenameNoteTask {
 		protected void onPostExecute(String result) {
 			File.uploadAsync(
 					Constants.CLOUD_BUCKET, 
-					parent.mNewUtf, 
+					parent.mNewTitle, 
 					new ByteArrayInputStream(result.getBytes()),
 					new FileUploadCallback() {
 						
@@ -97,7 +88,7 @@ public class RenameNoteTask {
 						public void onSuccess(String requestId) {
 							File.deleteAsync(
 									Constants.CLOUD_BUCKET, 
-									parent.mOldUtf,
+									parent.mOldTitle,
 									new FileDeleteCallback() {
 										
 										@Override

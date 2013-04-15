@@ -1,7 +1,5 @@
 package org.lh.note;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -323,11 +321,9 @@ public class NotesList extends ListActivity {
             return true;
         case R.id.context_delete:
         	final int pos = info.position;
-        	try{
-        		String utf = URLEncoder.encode(title, "UTF8");
         	
         	File.deleteAsync(Constants.CLOUD_BUCKET, 
-        			utf, 
+        			title, 
             		new FileDeleteCallback(){
 	                	public void onSuccess(String requestId){
 	                		Log.d(TAG, "FileDeleteCallback.onSuccess");
@@ -344,10 +340,7 @@ public class NotesList extends ListActivity {
 	                	public void onFailure(Throwable paramThrowable){
 	                		Log.d(TAG, "FileDeleteCallback.onFailure");
 	                	}
-            	}
-        	
-    		);
-        	}catch(UnsupportedEncodingException e){}
+            	});
         	Log.d(TAG, "local note deleted");
             return true;
         case R.id.context_edit_title:

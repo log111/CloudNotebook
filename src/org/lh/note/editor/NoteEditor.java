@@ -17,6 +17,8 @@
 package org.lh.note.editor;
 
 import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 import org.lh.note.R;
 import org.lh.note.data.CloudNotebook;
@@ -364,9 +366,11 @@ public class NoteEditor extends Activity {
             mTitle = title;
         }
 
+        try{
+        String utf = URLEncoder.encode(mTitle, "UTF8");
         File.uploadAsync(
         		CloudNotebook.CLOUD_BUCKET, 
-        		mTitle, 
+        		utf, 
         		new ByteArrayInputStream(escapedLineBreak(text).getBytes()), 
         		new FileUploadCallback(){
         	
@@ -379,6 +383,9 @@ public class NoteEditor extends Activity {
 		        	}
         		}
         	);
+        }catch(UnsupportedEncodingException e){
+        	Log.e(TAG, e.getCause().getMessage());
+        }
     }
 
     
@@ -386,8 +393,10 @@ public class NoteEditor extends Activity {
      * Take care of deleting a note.  Simply deletes the entry.
      */
     private final void deleteNote() {
+    	try{
+    		String utf = URLEncoder.encode(mTitle, "UTF8");
     	File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
-        		mTitle, 
+        		utf, 
         		new FileDeleteCallback(){
         	public void onSuccess(String requestId){
         		Log.d(TAG, "FileDeleteCallback.onSuccess");
@@ -397,5 +406,8 @@ public class NoteEditor extends Activity {
         		Log.d(TAG, "FileDeleteCallback.onFailure");
         	}
         });
+    	}catch(UnsupportedEncodingException e){
+    		//
+    	}
     }
 }

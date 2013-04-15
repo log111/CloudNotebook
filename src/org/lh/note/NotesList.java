@@ -16,6 +16,9 @@
 
 package org.lh.note;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -119,7 +122,12 @@ public class NotesList extends ListActivity {
 					for(int i=0;i<len;i++){
 						JSONObject object = flist.getJSONObject(i);
 						String title = object.getString(CloudNotebook.TITLE);
+						try{
+						title = URLDecoder.decode(title, "UTF8");
 						slist.add(title);
+						}catch(UnsupportedEncodingException e){
+							Log.e(TAG, e.getCause().getMessage());
+						}
 					}
 					titleList = slist;
 					setListAdapter(
@@ -364,8 +372,11 @@ public class NotesList extends ListActivity {
             return true;
         case R.id.context_delete:
         	final int pos = info.position;
+        	try{
+        		String utf = URLEncoder.encode(title, "UTF8");
+        	
         	File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
-            		title, 
+        			utf, 
             		new FileDeleteCallback(){
 	                	public void onSuccess(String requestId){
 	                		Log.d(TAG, "FileDeleteCallback.onSuccess");
@@ -383,7 +394,9 @@ public class NotesList extends ListActivity {
 	                		Log.d(TAG, "FileDeleteCallback.onFailure");
 	                	}
             	}
+        	
     		);
+        	}catch(UnsupportedEncodingException e){}
         	Log.d(TAG, "local note deleted");
             return true;
         case R.id.context_edit_title:

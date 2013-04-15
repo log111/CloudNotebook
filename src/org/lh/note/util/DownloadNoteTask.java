@@ -3,6 +3,8 @@ package org.lh.note.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 import org.lh.note.data.CloudNotebook;
 
@@ -24,7 +26,9 @@ public class DownloadNoteTask  {
 	}
 	
 	public void run(){
-		File.downloadAsync(CloudNotebook.CLOUD_BUCKET, mTitle, new FileDownloadCallback() {
+		try{
+		String title = URLEncoder.encode(mTitle, "UTF8");
+		File.downloadAsync(CloudNotebook.CLOUD_BUCKET, title, new FileDownloadCallback() {
 			
 			@Override
 			public void onSuccess(InputStream arg0) {
@@ -36,6 +40,9 @@ public class DownloadNoteTask  {
 				DownloadNoteTask.this.mCB.onFail(arg0);
 			}
 		});
+		}catch(UnsupportedEncodingException e){
+			Log.e(TAG, e.getCause().getMessage());
+		}
 	}
 	
 	private static class DNTask extends AsyncTask<InputStream, Void, String> { 

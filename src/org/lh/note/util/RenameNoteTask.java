@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 import org.lh.note.data.CloudNotebook;
 
@@ -88,9 +90,12 @@ public class RenameNoteTask {
 						
 						@Override
 						public void onSuccess(String requestId) {
+							try{
+								String utf = URLEncoder.encode(parent.mOldTitle, "UTF8");
+							
 							File.deleteAsync(
 									CloudNotebook.CLOUD_BUCKET, 
-									parent.mOldTitle,
+									utf,
 									new FileDeleteCallback() {
 										
 										@Override
@@ -103,6 +108,7 @@ public class RenameNoteTask {
 											parent.mCB.onFail(arg0);
 										}
 									});
+							}catch(UnsupportedEncodingException e){}
 						}
 						
 						@Override

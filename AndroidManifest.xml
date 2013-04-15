@@ -32,7 +32,8 @@
         android:allowBackup="false">
 		<activity
             android:name=".MainpageActivity"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -42,17 +43,20 @@
         <activity
             android:name=".auth.SignupActivity"
             android:label="@string/app_name"
-            android:windowSoftInputMode="adjustResize|stateVisible" >
+            android:windowSoftInputMode="adjustResize|stateVisible"
+            android:screenOrientation="portrait" >
         </activity>
         
         <activity
             android:name=".auth.LoginActivity"
             android:label="@string/app_name"
-            android:windowSoftInputMode="adjustResize|stateVisible" >
+            android:windowSoftInputMode="adjustResize|stateVisible" 
+            android:screenOrientation="portrait">
         </activity>
         
         <activity android:name=".NotesList" 
             android:label="@string/title_notes_list"
+            android:screenOrientation="portrait"
             >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -98,7 +102,8 @@
         <activity android:name=".editor.TitleEditor"
             android:label="@string/title_edit_title"
             android:icon="@drawable/ic_menu_edit"
-            android:windowSoftInputMode="stateVisible">
+            android:windowSoftInputMode="stateVisible"
+            android:screenOrientation="portrait">
             <!-- This activity implements an alternative action that can be
                  performed on notes: editing their title.  It can be used as
                  a default operation if the user invokes this action, and is

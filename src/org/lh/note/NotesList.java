@@ -1,33 +1,13 @@
-/*
- * Copyright (C) 2007 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.lh.note;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.lh.note.data.CloudNotebook;
 import org.lh.note.editor.NoteEditor;
 import org.lh.note.editor.TitleEditor;
+import org.lh.note.util.Constants;
 import org.lh.note.util.RenameNoteTask;
 
 import android.app.ListActivity;
@@ -75,7 +55,6 @@ public class NotesList extends ListActivity {
     
     private User me = null;
     private List<String> titleList = null;
-    private Uri contentUri = null;
 
     /**
      * onCreate is called when Android starts this Activity from scratch.
@@ -86,20 +65,7 @@ public class NotesList extends ListActivity {
 
         // The user does not need to hold down the key to use menu shortcuts.
         setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
-
-        /* If no data is given in the Intent that started this Activity, then this Activity
-         * was started when the intent filter matched a MAIN action. We should use the default
-         * provider URI.
-         */
-        // Gets the intent that started this Activity.
-        Intent intent = getIntent();
-
-        // If there is no data associated with the Intent, sets the data to the default URI, which
-        // accesses a list of notes.
-        if (intent.getData() == null) {
-        	contentUri = CloudNotebook.Notes.CONTENT_URI;
-            intent.setData(contentUri);
-        }
+        
         me = Mcs.getCurrentUser();
         Log.d(TAG, (me == null) ? "me is null" : "me not null" );
 
@@ -113,34 +79,19 @@ public class NotesList extends ListActivity {
 			}
 
 			@Override
-			public void onSuccess(File arg0) {
-				List<String> slist = new ArrayList<String>();
-				try{
-					JSONObject resp = (JSONObject)arg0.get(CloudNotebook.RESPONSE);
-					JSONArray flist = resp.getJSONArray(CloudNotebook.FILELIST);
-					int len = flist.length();
-					for(int i=0;i<len;i++){
-						JSONObject object = flist.getJSONObject(i);
-						String title = object.getString(CloudNotebook.TITLE);
-						try{
-						title = URLDecoder.decode(title, "UTF8");
-						slist.add(title);
-						}catch(UnsupportedEncodingException e){
-							Log.e(TAG, e.getCause().getMessage());
-						}
-					}
-					titleList = slist;
-					setListAdapter(
+			public void onSuccess(List<File> flist) {
+				titleList = new ArrayList<String>();
+				for(File f : flist){
+					titleList.add(f.getName());
+				}
+				setListAdapter(
 						new ArrayAdapter<String>(
 								NotesList.this,
 								R.layout.noteslist_item, 
 								titleList.toArray(new String[0])
 						)
 					);
-				}catch(JSONException e){
-					Log.d(TAG, "fail to retrieve the file list");
-				}
-			}			
+			}
 		});
     }
 
@@ -182,7 +133,7 @@ public class NotesList extends ListActivity {
 	    	case ADD_NOTE_REQUEST:
 	    		if(resultCode == RESULT_OK){
 	    			Log.d(TAG, "new note added");
-	    			titleList.add(data.getExtras().getString("title"));
+	    			titleList.add(data.getStringExtra("title"));
 	    			setListAdapter(
 							new ArrayAdapter<String>(
 									NotesList.this,
@@ -375,7 +326,7 @@ public class NotesList extends ListActivity {
         	try{
         		String utf = URLEncoder.encode(title, "UTF8");
         	
-        	File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
+        	File.deleteAsync(Constants.CLOUD_BUCKET, 
         			utf, 
             		new FileDeleteCallback(){
 	                	public void onSuccess(String requestId){

@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
-import org.lh.note.data.CloudNotebook;
 
 import android.os.AsyncTask;
 import android.util.Log;
@@ -20,18 +19,24 @@ import com.baidu.mcs.callback.FileUploadCallback;
 public class RenameNoteTask {
 	private static String TAG = "RenameNoteTask";
 	
-	private String mOldTitle = null;
+	private String mOldUtf = null;
+	private String mNewUtf = null;
 	private String mNewTitle = null;
 	private Callback mCB = null;
 	
 	public RenameNoteTask(String oldTitle, String newTitle, Callback cb){
-		mOldTitle = oldTitle;
-		mNewTitle = newTitle;
-		mCB = cb;
+		try{
+			mOldUtf = URLEncoder.encode(oldTitle, "UTF8");
+			mNewTitle = newTitle;
+			mNewUtf = URLEncoder.encode(newTitle, "UTF8");
+			mCB = cb;
+		}catch(UnsupportedEncodingException e){
+			Log.e(TAG, e.getCause().getMessage());
+		}
 	}
 	
 	public void run(){
-		File.downloadAsync(CloudNotebook.CLOUD_BUCKET, mOldTitle, new FileDownloadCallback() {
+		File.downloadAsync(Constants.CLOUD_BUCKET, mOldUtf, new FileDownloadCallback() {
 			
 			@Override
 			public void onSuccess(InputStream arg0) {
@@ -83,19 +88,16 @@ public class RenameNoteTask {
 		@Override
 		protected void onPostExecute(String result) {
 			File.uploadAsync(
-					CloudNotebook.CLOUD_BUCKET, 
-					parent.mNewTitle, 
+					Constants.CLOUD_BUCKET, 
+					parent.mNewUtf, 
 					new ByteArrayInputStream(result.getBytes()),
 					new FileUploadCallback() {
 						
 						@Override
 						public void onSuccess(String requestId) {
-							try{
-								String utf = URLEncoder.encode(parent.mOldTitle, "UTF8");
-							
 							File.deleteAsync(
-									CloudNotebook.CLOUD_BUCKET, 
-									utf,
+									Constants.CLOUD_BUCKET, 
+									parent.mOldUtf,
 									new FileDeleteCallback() {
 										
 										@Override
@@ -108,7 +110,6 @@ public class RenameNoteTask {
 											parent.mCB.onFail(arg0);
 										}
 									});
-							}catch(UnsupportedEncodingException e){}
 						}
 						
 						@Override

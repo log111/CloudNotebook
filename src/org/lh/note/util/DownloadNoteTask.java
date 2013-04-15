@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
-import org.lh.note.data.CloudNotebook;
 
 import android.os.AsyncTask;
 import android.util.Log;
@@ -28,7 +27,7 @@ public class DownloadNoteTask  {
 	public void run(){
 		try{
 		String title = URLEncoder.encode(mTitle, "UTF8");
-		File.downloadAsync(CloudNotebook.CLOUD_BUCKET, title, new FileDownloadCallback() {
+		File.downloadAsync(Constants.CLOUD_BUCKET, title, new FileDownloadCallback() {
 			
 			@Override
 			public void onSuccess(InputStream arg0) {

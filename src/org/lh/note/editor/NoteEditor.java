@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2007 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.lh.note.editor;
 
 import java.io.ByteArrayInputStream;
@@ -21,7 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import org.lh.note.R;
-import org.lh.note.data.CloudNotebook;
+import org.lh.note.util.Constants;
 import org.lh.note.util.DownloadNoteTask;
 
 import android.app.Activity;
@@ -369,7 +353,7 @@ public class NoteEditor extends Activity {
         try{
         String utf = URLEncoder.encode(mTitle, "UTF8");
         File.uploadAsync(
-        		CloudNotebook.CLOUD_BUCKET, 
+        		Constants.CLOUD_BUCKET, 
         		utf, 
         		new ByteArrayInputStream(escapedLineBreak(text).getBytes()), 
         		new FileUploadCallback(){
@@ -395,7 +379,7 @@ public class NoteEditor extends Activity {
     private final void deleteNote() {
     	try{
     		String utf = URLEncoder.encode(mTitle, "UTF8");
-    	File.deleteAsync(CloudNotebook.CLOUD_BUCKET, 
+    	File.deleteAsync(Constants.CLOUD_BUCKET, 
         		utf, 
         		new FileDeleteCallback(){
         	public void onSuccess(String requestId){

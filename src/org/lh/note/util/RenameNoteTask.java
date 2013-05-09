@@ -2,16 +2,15 @@ package org.lh.note.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.baidu.mcs.File;
 import com.baidu.mcs.callback.FileDeleteCallback;
 import com.baidu.mcs.callback.FileDownloadCallback;
 import com.baidu.mcs.callback.FileUploadCallback;
+import com.baidu.mcs.file.FileStorage;
 
 public class RenameNoteTask {
 	private static String TAG = "RenameNoteTask";
@@ -27,32 +26,33 @@ public class RenameNoteTask {
 	}
 	
 	public void run(){
-		File.downloadAsync(Constants.CLOUD_BUCKET, mOldTitle, new FileDownloadCallback() {
+		FileStorage.downloadAsync(Constants.CLOUD_BUCKET, mOldTitle, new FileDownloadCallback() {
 			
 			@Override
-			public void onSuccess(InputStream arg0) {
-				new DNTask(RenameNoteTask.this).execute(arg0);
+			public void onSuccess(Object fileObj) {
+				new DNTask().execute(fileObj);
 			}
 			
 			@Override
-			public void onFailure(Throwable arg0) {
-				RenameNoteTask.this.mCB.onFail(arg0);
+			public void onFailure(int code, String msg) {
+				mCB.onFail(code, msg);
+			}
+			
+			@Override
+			public void onProgressUpdate(Integer arg0) {	
 			}
 		});
 	}
 	
-	private static class DNTask extends AsyncTask<InputStream, Void, String> { 
-		
-		private RenameNoteTask parent = null;
-		
-		public DNTask(RenameNoteTask t){
-			parent = t;
-		}
+	private class DNTask extends AsyncTask<Object, Void, String> { 
 		
 		@Override
-		protected String doInBackground(InputStream... arg) {
+		protected String doInBackground(Object... arg) {
 			
-			InputStreamReader in = new InputStreamReader(arg[0]);
+			InputStreamReader in = 
+					new InputStreamReader(
+						new ByteArrayInputStream((byte[])arg[0])
+					);
 			StringBuilder sb = new StringBuilder();
 			char[] buf = new char[2048];
 			try{
@@ -78,34 +78,38 @@ public class RenameNoteTask {
 		
 		@Override
 		protected void onPostExecute(String result) {
-			File.uploadAsync(
+			FileStorage.uploadAsync(
 					Constants.CLOUD_BUCKET, 
-					parent.mNewTitle, 
-					new ByteArrayInputStream(result.getBytes()),
+					mNewTitle, 
+					result.getBytes(),
 					new FileUploadCallback() {
 						
 						@Override
 						public void onSuccess(String requestId) {
-							File.deleteAsync(
+							FileStorage.deleteAsync(
 									Constants.CLOUD_BUCKET, 
-									parent.mOldTitle,
+									mOldTitle,
 									new FileDeleteCallback() {
 										
 										@Override
 										public void onSuccess(String requestId) {
-											parent.mCB.onSuccess(parent.mNewTitle);
+											mCB.onSuccess(mNewTitle);
 										}
 										
 										@Override
-										public void onFailure(Throwable arg0) {
-											parent.mCB.onFail(arg0);
+										public void onFailure(int code, String msg) {
+											mCB.onFail(code, msg);
 										}
 									});
 						}
 						
 						@Override
-						public void onFailure(Throwable arg0) {
-							parent.mCB.onFail(arg0);
+						public void onFailure(int code, String msg) {
+							mCB.onFail(code, msg);
+						}
+						
+						@Override
+						public void onProgressUpdate(Integer arg0) {							
 						}
 					});
 		}
@@ -113,6 +117,6 @@ public class RenameNoteTask {
 	
 	public static interface Callback{
 		void onSuccess(String newTitle);
-		void onFail(Throwable t);
+		void onFail(int code, String msg);
 	}
 }

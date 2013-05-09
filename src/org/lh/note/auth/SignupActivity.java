@@ -18,8 +18,8 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.baidu.mcs.User;
 import com.baidu.mcs.callback.UserCallback;
+import com.baidu.mcs.user.User;
 
 /**
  * Activity which displays a login screen to the user, offering registration as
@@ -134,11 +134,12 @@ public class SignupActivity extends Activity {
 			user.signupAsync(new UserCallback(){
 			 	@Override
 			 	public void onSuccess(User user){
-			 		Log.d(TAG, "UserCallback.onSuccess");
+			 		Log.d(TAG, "Signup.Callback.onSuccess");
 			 		
-					user.loginAsync(new UserCallback(){
+					user.loginAsync(User.LoginType.BAIDU_PASSPORT, new UserCallback(){
 					 	@Override
 					 	public void onSuccess(User user){
+					 		Log.d(TAG, "Login.Callback.onSuccess");
 					 		finish();
 					 		
 					 		Intent i = new Intent();
@@ -149,8 +150,7 @@ public class SignupActivity extends Activity {
 					 	}
 					 	
 					 	@Override
-					 	public void onFailure(java.lang.Throwable paramThrowable){
-					 		finish();
+					 	public void onFailure(int code, String msg){
 					 		showProgress(false);
 					 		mPasswordView
 								.setError(getString(R.string.error_incorrect_password));
@@ -160,9 +160,9 @@ public class SignupActivity extends Activity {
 			 	}
 			 	
 			 	@Override
-			 	public void onFailure(java.lang.Throwable paramThrowable){
+			 	public void onFailure(int code, String msg){
 			 		Log.d(TAG, "UserCallback.onFailure");
-			 		Log.d(TAG, paramThrowable.getMessage());
+			 		Log.d(TAG, msg);
 			 		
 			 		showProgress(false);
 			 		mUserView

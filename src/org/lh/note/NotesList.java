@@ -25,12 +25,12 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-import com.baidu.mcs.File;
 import com.baidu.mcs.Mcs;
-import com.baidu.mcs.User;
 import com.baidu.mcs.callback.FileDeleteCallback;
 import com.baidu.mcs.callback.FileListCallback;
 import com.baidu.mcs.callback.UserLogoutCallback;
+import com.baidu.mcs.file.FileStorage;
+import com.baidu.mcs.user.User;
 
 /**
  * Displays a list of notes. Will display notes from the {@link Uri}
@@ -69,28 +69,31 @@ public class NotesList extends ListActivity {
 
         getListView().setOnCreateContextMenuListener(this);
 
-        File.listFileAsync(new FileListCallback(){
+        FileStorage.listFileAsync(
+        		new FileListCallback(){
 
-			@Override
-			public void onFailure(Throwable arg0) {
-				Log.d(TAG, "fail to retrieve the file list");
-			}
+					@Override
+					public void onFailure(int err_code, String err_msg) {
+						Log.d(TAG, "fail to retrieve the file list, err code: " + err_code + " msg: " + err_msg);
+					}
 
-			@Override
-			public void onSuccess(List<File> flist) {
-				titleList = new ArrayList<String>();
-				for(File f : flist){
-					titleList.add(f.getName());
-				}
-				setListAdapter(
-						new ArrayAdapter<String>(
-								NotesList.this,
-								R.layout.noteslist_item, 
-								titleList.toArray(new String[0])
-						)
-					);
-			}
-		});
+					@Override
+					public void onSuccess(List<FileStorage> flist) {
+						
+						titleList = new ArrayList<String>();
+						for(FileStorage f : flist){
+							titleList.add(f.getName());
+						}
+						setListAdapter(
+								new ArrayAdapter<String>(
+										NotesList.this,
+										R.layout.noteslist_item, 
+										titleList.toArray(new String[0])
+								)
+							);
+					}
+        			
+        		});
     }
 
     /**
@@ -185,8 +188,8 @@ public class NotesList extends ListActivity {
 						}
 						
 						@Override
-						public void onFail(Throwable t) {
-							Log.d(TAG, "fail to rename" + oldTitle + ", cause=" + t.getCause().getMessage());
+						public void onFail(int code, String msg) {
+							Log.d(TAG, "fail to rename" + oldTitle + ", cause=" + msg);
 						}
 					});
 	    			
@@ -225,7 +228,9 @@ public class NotesList extends ListActivity {
 				
 				@Override
 				public void onSuccess(String requestId) {
-					me = null;
+					me = Mcs.getCurrentUser();
+					Log.d(TAG, "current user is " + (me == null ? "null" : me.toString()) );
+					
 					finish();
 		        	Intent i = new Intent();
 			 		i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -234,7 +239,7 @@ public class NotesList extends ListActivity {
 				}
 				
 				@Override
-				public void onFailure(Throwable arg0) {
+				public void onFailure(int code, String msg) {
 					Log.d(TAG, "logoutAsync fail");
 				}
 			});
@@ -322,7 +327,7 @@ public class NotesList extends ListActivity {
         case R.id.context_delete:
         	final int pos = info.position;
         	
-        	File.deleteAsync(Constants.CLOUD_BUCKET, 
+        	FileStorage.deleteAsync(Constants.CLOUD_BUCKET, 
         			title, 
             		new FileDeleteCallback(){
 	                	public void onSuccess(String requestId){
@@ -337,7 +342,7 @@ public class NotesList extends ListActivity {
 	                		);
 	                	}
 	                	
-	                	public void onFailure(Throwable paramThrowable){
+	                	public void onFailure(int code, String msg){
 	                		Log.d(TAG, "FileDeleteCallback.onFailure");
 	                	}
             	});

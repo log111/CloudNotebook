@@ -1,14 +1,14 @@
 package org.lh.note.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.baidu.mcs.File;
 import com.baidu.mcs.callback.FileDownloadCallback;
+import com.baidu.mcs.file.FileStorage;
 
 public class DownloadNoteTask  {
 	private static String TAG = "DownloadNoteTask";
@@ -22,32 +22,33 @@ public class DownloadNoteTask  {
 	}
 	
 	public void run(){
-		File.downloadAsync(Constants.CLOUD_BUCKET, mTitle, new FileDownloadCallback() {
+		FileStorage.downloadAsync(Constants.CLOUD_BUCKET, mTitle, new FileDownloadCallback() {
 			
 			@Override
-			public void onSuccess(InputStream arg0) {
-				new DNTask(DownloadNoteTask.this).execute(arg0);
+			public void onSuccess(Object fileObj) {
+				new DNTask().execute(fileObj);
 			}
 			
 			@Override
-			public void onFailure(Throwable arg0) {
-				DownloadNoteTask.this.mCB.onFail(arg0);
+			public void onFailure(int code, String msg) {
+				mCB.onFail(code, msg);
+			}
+			
+			@Override
+			public void onProgressUpdate(Integer arg0) {
+				//
 			}
 		});
 	}
 	
-	private static class DNTask extends AsyncTask<InputStream, Void, String> { 
-		
-		private DownloadNoteTask parent = null;
-		
-		public DNTask(DownloadNoteTask t){
-			parent = t;
-		}
+	private class DNTask extends AsyncTask<Object, Void, String> { 
 		
 		@Override
-		protected String doInBackground(InputStream... arg) {
-			
-			InputStreamReader in = new InputStreamReader(arg[0]);
+		protected String doInBackground(Object... arg) {
+			InputStreamReader in = 
+					new InputStreamReader(
+							new ByteArrayInputStream((byte[])arg[0])
+					);
 			StringBuilder sb = new StringBuilder();
 			char[] buf = new char[2048];
 			try{
@@ -72,12 +73,12 @@ public class DownloadNoteTask  {
 		
 		@Override
 		protected void onPostExecute(String result) {
-			parent.mCB.onSuccess(result);
+			mCB.onSuccess(result);
 		}
 	}
 	
 	public static interface Callback{
 		void onSuccess(String note);
-		void onFail(Throwable t);
+		void onFail(int code, String msg);
 	}
 }

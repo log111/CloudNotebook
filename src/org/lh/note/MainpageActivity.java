@@ -1,15 +1,14 @@
 package org.lh.note;
 
-import org.lh.note.R;
 import org.lh.note.auth.LoginActivity;
 import org.lh.note.auth.SignupActivity;
-
-import com.baidu.mcs.Mcs;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+
+import com.baidu.mcs.Mcs;
 
 public class MainpageActivity extends Activity {
 	
@@ -41,6 +40,6 @@ public class MainpageActivity extends Activity {
 					}
 				});
 
-		Mcs.init(getApplicationContext(), "appid38fvp7a7z5", "nX6S9rt5MMEdBlYtaA1ZzxdH");
+		Mcs.init(getApplicationContext(), getString(R.string.app_id), getString(R.string.app_key));
 	}
 }

@@ -17,8 +17,8 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.baidu.mcs.User;
 import com.baidu.mcs.callback.UserCallback;
+import com.baidu.mcs.user.User;
 
 /**
  * Activity which displays a login screen to the user, offering registration as
@@ -137,7 +137,7 @@ public class LoginActivity extends Activity {
 			User user = new User(getApplicationContext());
 			user.setUserName(mUsername);
 			user.setPassword(mPassword);
-			user.loginAsync(new UserCallback(){
+			user.loginAsync(User.LoginType.BAIDU_PASSPORT, new UserCallback(){
 			 	@Override
 			 	public void onSuccess(User user){
 			 		finish();
@@ -150,8 +150,7 @@ public class LoginActivity extends Activity {
 			 	}
 			 	
 			 	@Override
-			 	public void onFailure(java.lang.Throwable paramThrowable){
-			 		finish();
+			 	public void onFailure(int code, String msg){
 			 		showProgress(false);
 			 		
 			 		mPasswordView

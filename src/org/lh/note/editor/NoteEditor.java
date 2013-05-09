@@ -1,11 +1,10 @@
 package org.lh.note.editor;
 
-import java.io.ByteArrayInputStream;
-
 import org.lh.note.R;
 import org.lh.note.util.Constants;
 import org.lh.note.util.DownloadNoteTask;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -13,6 +12,7 @@ import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -21,9 +21,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.EditText;
 
-import com.baidu.mcs.File;
 import com.baidu.mcs.callback.FileDeleteCallback;
 import com.baidu.mcs.callback.FileUploadCallback;
+import com.baidu.mcs.file.FileStorage;
 
 public class NoteEditor extends Activity {
     // For logging and debugging purposes
@@ -168,7 +168,7 @@ public class NoteEditor extends Activity {
 				}
 				
 				@Override
-				public void onFail(Throwable t) {
+				public void onFail(int code, String msg) {
 					setTitle(getText(R.string.error_title));
 		            mText.setText(getText(R.string.error_message));
 				}
@@ -245,14 +245,14 @@ public class NoteEditor extends Activity {
      * @return True to indicate that the item was processed, and no further work is necessary. False
      * to proceed to further processing as indicated in the MenuItem object.
      */
-    @Override
+	@Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle all of the possible menu actions.
         switch (item.getItemId()) {
         case R.id.menu_save:
         	Log.d(TAG, "option_menu save clicked");
         	String text = mText.getText().toString();
-        	if(! text.isEmpty()){//if text is empty, fall back to the case as R.id.menu_delete
+        	if(text.length() != 0){//if text is empty, fall back to the case as R.id.menu_delete
         		
 	            if (mState == STATE_INSERT) {
 	            	// Get the note's length
@@ -348,18 +348,23 @@ public class NoteEditor extends Activity {
             mTitle = title;
         }
         Log.d(TAG, "text="+text);
-        File.uploadAsync(
+        FileStorage.uploadAsync(
         		Constants.CLOUD_BUCKET, 
         		mTitle, 
-        		new ByteArrayInputStream(escapedLineBreak(text).getBytes()), 
+        		escapedLineBreak(text).getBytes(), 
         		new FileUploadCallback(){
         	
 		        	public void onSuccess(String requestId){
 		        		Log.d(TAG, "note["+ mTitle +"] saved");		        		
 		        	}
 		        	
-		        	public void onFailure(Throwable paramThrowable){
-		        		Log.d(TAG, paramThrowable.getMessage());
+		        	public void onFailure(int code, String msg){
+		        		Log.d(TAG, msg);
+		        	}
+		        	
+		        	@Override
+		        	public void onProgressUpdate(Integer arg0) {
+		        		//
 		        	}
         		}
         	);
@@ -370,15 +375,15 @@ public class NoteEditor extends Activity {
      * Take care of deleting a note.  Simply deletes the entry.
      */
     private final void deleteNote() {
-    	File.deleteAsync(Constants.CLOUD_BUCKET, 
+    	FileStorage.deleteAsync(Constants.CLOUD_BUCKET, 
     			mTitle, 
         		new FileDeleteCallback(){
         	public void onSuccess(String requestId){
         		Log.d(TAG, "FileDeleteCallback.onSuccess");
         	}
         	
-        	public void onFailure(Throwable paramThrowable){
-        		Log.d(TAG, "FileDeleteCallback.onFailure");
+        	public void onFailure(int code, String msg){
+        		Log.d(TAG, msg);
         	}
         });
     }

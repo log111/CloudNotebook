@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.view.View;
 
 import com.baidu.mcs.Mcs;
+import com.baidu.mcs.callback.UserCallback;
+import com.baidu.mcs.user.User;
 
 public class MainpageActivity extends Activity {
 	
@@ -24,9 +26,30 @@ public class MainpageActivity extends Activity {
 					
 					@Override
 					public void onClick(View v) {
+						
 						Intent i = new Intent();
 						i.setClass(MainpageActivity.this, LoginActivity.class);
 						MainpageActivity.this.startActivity(i);
+						
+						/*
+						User user = new User(getApplicationContext());
+						user.loginAsync(User.LoginType.BAIDU_PASSPORT, new UserCallback(){
+						 	@Override
+						 	public void onSuccess(User user){
+						 		finish();
+						 		
+						 		Intent intent = new Intent();
+								intent.setClassName("org.lh.note", "org.lh.note.NotesList");
+								startActivity(intent);
+								
+						 	}
+						 	
+						 	@Override
+						 	public void onFailure(int code, String msg){
+						 		//TODO
+						 	}
+						 });
+						 */
 					}
 				});
 		findViewById(R.id.to_sign_up_button).setOnClickListener(

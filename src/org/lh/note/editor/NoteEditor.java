@@ -4,7 +4,6 @@ import org.lh.note.R;
 import org.lh.note.util.Constants;
 import org.lh.note.util.DownloadNoteTask;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,7 +11,6 @@ import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -45,10 +43,6 @@ public class NoteEditor extends Activity {
     private EditText mText;
     private String mOriginalContent;
     private int mPosition = -1;
-    
-    private String escapedLineBreak(String src){
-    	return src.replaceAll("\n", "\\\\n");
-    }
     
     /**
      * Defines a custom EditText View that draws lines between each line of text that is displayed.
@@ -103,10 +97,15 @@ public class NoteEditor extends Activity {
         }
     }
 
-    /**
-     * This method is called by Android when the Activity is first started. From the incoming
-     * Intent, it determines what kind of editing is desired, and then does it.
-     */
+    private String constructTitleFromContent(String content){
+    	
+    	int guard = content.indexOf('\n');
+        if(-1 == guard){
+        	guard = content.length();
+        }
+        return content.substring(0, Math.min(30, guard));
+    }
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -160,7 +159,7 @@ public class NoteEditor extends Activity {
 						// Stores the original note text, to allow the user to revert changes.
 				        if (mOriginalContent == null) {
 				        	mOriginalContent = note;
-				        }
+				        }						
 					}else{
 						setTitle(getText(R.string.error_title));
 						mText.setText(getText(R.string.error_message));
@@ -208,7 +207,7 @@ public class NoteEditor extends Activity {
             // Creates a map to contain the new values for the columns
             updateNote(text, null);
         } else if (mState == STATE_INSERT) {
-            updateNote(text, text);
+            updateNote(text, mTitle);
             mState = STATE_EDIT;
         }
     }
@@ -255,22 +254,7 @@ public class NoteEditor extends Activity {
         	if(text.length() != 0){//if text is empty, fall back to the case as R.id.menu_delete
         		
 	            if (mState == STATE_INSERT) {
-	            	// Get the note's length
-	                int length = text.length();
-	
-	                // Sets the title by getting a substring of the text that is 31 characters long
-	                // or the number of characters in the note plus one, whichever is smaller.
-	                String title = text.substring(0, Math.min(30, length));
-	  
-	                // If the resulting length is more than 30 characters, chops off any
-	                // trailing spaces
-	                if (length > 30) {
-	                    int lastSpace = title.lastIndexOf(' ');
-	                    if (lastSpace > 0) {
-	                        title = title.substring(0, lastSpace);
-	                    }
-	                }
-	                mTitle = title;
+	            	mTitle = constructTitleFromContent(text);
 	            }
 	            setResult(
 	    				RESULT_OK, 
@@ -329,45 +313,29 @@ public class NoteEditor extends Activity {
             // If no title was provided as an argument, create one from the note text.
             if (title == null) {
   
-                // Get the note's length
-                int length = text.length();
-
-                // Sets the title by getting a substring of the text that is 31 characters long
-                // or the number of characters in the note plus one, whichever is smaller.
-                title = text.substring(0, Math.min(30, length));
-  
-                // If the resulting length is more than 30 characters, chops off any
-                // trailing spaces
-                if (length > 30) {
-                    int lastSpace = title.lastIndexOf(' ');
-                    if (lastSpace > 0) {
-                        title = title.substring(0, lastSpace);
-                    }
-                }
+            	title = constructTitleFromContent(text);
             }
             mTitle = title;
         }
-        Log.d(TAG, "text="+text);
-        FileStorage.uploadAsync(
-        		Constants.CLOUD_BUCKET, 
-        		mTitle, 
-        		escapedLineBreak(text).getBytes(), 
-        		new FileUploadCallback(){
-        	
-		        	public void onSuccess(String requestId){
-		        		Log.d(TAG, "note["+ mTitle +"] saved");		        		
-		        	}
-		        	
-		        	public void onFailure(int code, String msg){
-		        		Log.d(TAG, msg);
-		        	}
-		        	
-		        	@Override
-		        	public void onProgressUpdate(Integer arg0) {
-		        		//
-		        	}
-        		}
-        	);
+    	FileStorage.uploadAsync(
+    		Constants.CLOUD_BUCKET, 
+    		mTitle, 
+    		text.getBytes(),
+    		new FileUploadCallback(){
+    	
+	        	public void onSuccess(String requestId){
+	        		Log.d(TAG, "note["+ mTitle +"] saved");		        		
+	        	}
+	        	
+	        	public void onFailure(int code, String msg){
+	        		Log.d(TAG, msg);
+	        	}
+	        	
+	        	@Override
+	        	public void onProgressUpdate(Integer arg0) {
+	        	}
+    		}
+    	);
     }
 
     

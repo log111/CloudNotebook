@@ -137,10 +137,11 @@ public class LoginActivity extends Activity {
 			User user = new User(getApplicationContext());
 			user.setUserName(mUsername);
 			user.setPassword(mPassword);
-			user.loginAsync(User.LoginType.BAIDU_PASSPORT, new UserCallback(){
+			user.loginAsync(User.LoginType.USERNAME_PASSWORD, new UserCallback(){
 			 	@Override
 			 	public void onSuccess(User user){
 			 		finish();
+			 		
 			 		
 			 		Intent intent = new Intent();
 					intent.setClassName("org.lh.note", "org.lh.note.NotesList");

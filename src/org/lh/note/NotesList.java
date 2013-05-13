@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
+import android.view.ViewGroup.MarginLayoutParams;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,6 +25,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.baidu.mcs.Mcs;
 import com.baidu.mcs.callback.FileDeleteCallback;
@@ -53,6 +55,9 @@ public class NotesList extends ListActivity {
     
     private User me = null;
     private List<String> titleList = null;
+    private View clickedItemView;
+    private int verticalMargin;
+    private int horizontalMargin;
 
     /**
      * onCreate is called when Android starts this Activity from scratch.
@@ -142,7 +147,10 @@ public class NotesList extends ListActivity {
 									titleList.toArray(new String[0])
 							)
 						);
+	    		}else if(resultCode == RESULT_CANCELED){
+	    			//TODO
 	    		}
+	    		clickedItemView = null;
 	    	break;
 	    	case EDIT_NOTE_REQUEST:
 	    		if(resultCode == RESULT_OK){
@@ -162,7 +170,25 @@ public class NotesList extends ListActivity {
 									titleList.toArray(new String[0])
 							)
 						);
+	    		}else if(resultCode == RESULT_CANCELED){
+	    			if(data != null){//cancelled because of error
+		    			int err_code = data.getIntExtra("err_code", -1);
+		    			String err_msg = data.getStringExtra("err_msg");
+		    			int pos = data.getIntExtra("pos", 0);
+		    			String noteName = (String) getListAdapter().getItem(pos);
+		    			
+		    			Toast errorToast = Toast.makeText(
+		    					clickedItemView.getContext(), 
+		    					"fail to get " + noteName + 
+		    					".\n error code: " + err_code + 
+		    					"\nerror message: "+err_msg, 
+		    					Toast.LENGTH_LONG
+		    			);
+		    			errorToast.setMargin(horizontalMargin, verticalMargin);
+		    			errorToast.show();
+	    			}
 	    		}
+	    		clickedItemView = null;
 	    		break;
 	    	case EDIT_TITLE_REQUEST:
 	    		if(resultCode == RESULT_OK){
@@ -371,6 +397,12 @@ public class NotesList extends ListActivity {
      */
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
+    	
+    	MarginLayoutParams lp = (MarginLayoutParams) l.getLayoutParams();
+    	verticalMargin = lp.topMargin / l.getHeight();
+    	horizontalMargin = lp.leftMargin / l.getWidth();
+    	
+    	v.requestFocus();//focus the item
     	
     	String title = titleList.get(Long.valueOf(id).intValue());
     	Log.d(TAG, "id="+id+" title=" + title);

@@ -31,6 +31,7 @@ public class DownloadNoteTask  {
 			
 			@Override
 			public void onFailure(int code, String msg) {
+				Log.d(TAG, "downloadAsync fail");
 				mCB.onFail(code, msg);
 			}
 			
@@ -73,6 +74,7 @@ public class DownloadNoteTask  {
 		
 		@Override
 		protected void onPostExecute(String result) {
+			
 			mCB.onSuccess(result);
 		}
 	}

@@ -12,6 +12,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.text.Selection;
+import android.text.Spannable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
@@ -145,11 +147,11 @@ public class NoteEditor extends Activity {
 
         // Modifies the window title for the Activity according to the current Activity state.
         if (mState == STATE_EDIT) {
-            String text = String.format(getResources().getString(R.string.title_edit), mTitle);
-            setTitle(text);
+            String formatted = String.format(getResources().getString(R.string.title_edit), mTitle);
+            setTitle(formatted);
             
             Log.d(TAG, "download file " + mTitle);
-            DownloadNoteTask t = new DownloadNoteTask(mTitle, new DownloadNoteTask.Callback() {
+            new DownloadNoteTask(mTitle, new DownloadNoteTask.Callback() {
 				
 				@Override
 				public void onSuccess(String note) {
@@ -159,23 +161,27 @@ public class NoteEditor extends Activity {
 						// Stores the original note text, to allow the user to revert changes.
 				        if (mOriginalContent == null) {
 				        	mOriginalContent = note;
-				        }						
+				        }
+				        CharSequence text = mText.getText();
+				        if(text instanceof Spannable){
+				        	Selection.setSelection((Spannable)text, mText.length());
+				        }
 					}else{
-						setTitle(getText(R.string.error_title));
-						mText.setText(getText(R.string.error_message));
+						setResult(RESULT_CANCELED);
+						finish();
 					}
 				}
 				
 				@Override
 				public void onFail(int code, String msg) {
-					setTitle(getText(R.string.error_title));
-		            mText.setText(getText(R.string.error_message));
+					Intent data = new Intent();
+					data.putExtra("err_code", code);
+					data.putExtra("err_msg", msg);
+					data.putExtra("pos", mPosition);
+					setResult(RESULT_CANCELED, data);
+					finish();
 				}
-			});
-            t.run();
-            
-            String formatedTitle = String.format(getResources().getString(R.string.title_edit), mTitle);
-            setTitle(formatedTitle);
+			}).run();
         // Sets the title to "create" for inserts
         } else if (mState == STATE_INSERT) {
             setTitle(getText(R.string.title_create));
@@ -214,7 +220,6 @@ public class NoteEditor extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate menu from XML resource
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.editor_options_menu, menu);
 

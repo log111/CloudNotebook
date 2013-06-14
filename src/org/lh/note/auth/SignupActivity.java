@@ -136,7 +136,15 @@ public class SignupActivity extends Activity {
 			 	public void onSuccess(User user){
 			 		Log.d(TAG, "Signup.Callback.onSuccess");
 			 		
-					user.loginAsync(User.LoginType.BAIDU_PASSPORT, new UserCallback(){
+			 		finish();
+			 		
+			 		Intent i = new Intent();
+			 		i.setClassName("org.lh.note", "org.lh.note.NotesList");
+					startActivity(i);
+					
+					showProgress(false);
+			 		/*
+					user.loginAsync(User.LoginType.USERNAME_PASSWORD, new UserCallback(){
 					 	@Override
 					 	public void onSuccess(User user){
 					 		Log.d(TAG, "Login.Callback.onSuccess");
@@ -156,7 +164,7 @@ public class SignupActivity extends Activity {
 								.setError(getString(R.string.error_incorrect_password));
 							mPasswordView.requestFocus();
 					 	}
-					});
+					});*/
 			 	}
 			 	
 			 	@Override
